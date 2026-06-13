@@ -3,31 +3,40 @@
 Kiro-style Spec-Driven Development on an agentic SDLC
 
 ## Project Memory
-Project memory keeps persistent guidance (steering, specs notes, component docs) so GitHub Copilot honors your standards each run. Treat it as the long-lived source of truth for patterns, conventions, and decisions.
 
-- Use `.kiro/steering/` for project-wide policies: architecture principles, naming schemes, security constraints, tech stack decisions, api standards, etc.
-- Use local `AGENTS.md` files for feature or library context (e.g. `src/lib/payments/AGENTS.md`): describe domain assumptions, API contracts, or testing conventions specific to that folder.
+Project memory keeps persistent guidance (steering, specs notes, component docs) so AI agents honor your standards each run. Treat it as the long-lived source of truth for patterns, conventions, and decisions.
+
+- Use `.kiro/steering/` for project-wide policies: architecture principles, naming schemes, security constraints, tech stack decisions, API standards, roadmap, etc.
+- Use local `AGENTS.md` files for feature or library context (e.g., `src/lib/payments/AGENTS.md`): describe domain assumptions, API contracts, or testing conventions specific to that folder.
 - Specs notes stay with each spec (under `.kiro/specs/`) to guide specification-level workflows.
+- Use `.github/copilot-instructions.md` as the GitHub Copilot Code Review adapter. Keep detailed project memory in `AGENTS.md` and `.kiro/steering/`, and keep Copilot review instructions concise and review-focused.
 
 ## Project Context
 
 ### Paths
+
 - Steering: `.kiro/steering/`
 - Specs: `.kiro/specs/`
+- Reference docs: `docs/`
 
 ### Steering vs Specification
 
 **Steering** (`.kiro/steering/`) - Guide AI with project-wide rules and context
 **Specs** (`.kiro/specs/`) - Formalize development process for individual features
+**Reference docs** (`docs/`) - Preserve supporting requirements, architecture proposals, and design references outside the formal spec workflow
 
 ### Active Specifications
-- Check `.kiro/specs/` for active specifications
-- Use `/kiro-spec-status [feature-name]` to check progress
+
+- Check `.kiro/specs/` for active specifications.
+- Some specs may initially contain only `brief.md`; treat these as discovery/pre-spec inputs until `spec.json`, `requirements.md`, `design.md`, and `tasks.md` are created.
+- Use `/kiro-spec-status [feature-name]` to check progress.
 
 ## Development Guidelines
+
 - Think in English, generate responses in Japanese. All Markdown content written to project files (e.g., requirements.md, design.md, tasks.md, research.md, validation reports) MUST be written in the target language configured for this specification (see spec.json.language).
 
 ## Minimal Workflow
+
 - Phase 0 (optional): `/kiro-steering`, `/kiro-steering-custom`
 - Discovery: `/kiro-discovery "idea"` — determines action path, writes brief.md + roadmap.md for multi-spec projects
 - Phase 1 (Specification):
@@ -46,7 +55,9 @@ Project memory keeps persistent guidance (steering, specs notes, component docs)
 - Progress check: `/kiro-spec-status {feature}` (use anytime)
 
 ## Skills Structure
+
 Skills are located in `.github/skills/kiro-*/SKILL.md`
+
 - Each skill is a directory with a `SKILL.md` file
 - Use `/skills` to inspect currently available skills
 - Invoke a skill directly with `/kiro-<skill-name>`
@@ -56,12 +67,14 @@ Skills are located in `.github/skills/kiro-*/SKILL.md`
 - `kiro-verify-completion` — fresh-evidence gate before success or completion claims
 
 ## Development Rules
+
 - 3-phase approval workflow: Requirements → Design → Tasks → Implementation
 - Human review required each phase; use `-y` only for intentional fast-track
 - Keep steering current and verify alignment with `/kiro-spec-status`
 - Follow the user's instructions precisely, and within that scope act autonomously: gather the necessary context and complete the requested work end-to-end in this run, asking questions only when essential information is missing or the instructions are critically ambiguous.
 
 ## Steering Configuration
+
 - Load entire `.kiro/steering/` as project memory
-- Default files: `product.md`, `tech.md`, `structure.md`
+- Default files: `product.md`, `tech.md`, `structure.md`, `roadmap.md`
 - Custom files are supported (managed via `/kiro-steering-custom`)
