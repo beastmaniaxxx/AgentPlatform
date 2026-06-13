@@ -6,7 +6,7 @@
 
 ## Current State
 
-`infrastructure` SpecによりOpen WebUI・Ollama・SearXNGのコンテナは起動しているが、検索クエリをSearXNGへ中継しLLMが要約する仕組みは未実装。
+本PR時点ではブリーフのみ追加されており、Open WebUI→Dify→SearXNG の検索中継・要約パスは未実装。まず `infrastructure` / `dify-integration` の完了が前提となる。
 
 ## Desired Outcome
 
