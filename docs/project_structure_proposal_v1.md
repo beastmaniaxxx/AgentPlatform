@@ -442,10 +442,10 @@ npx cc-sdd@latest --claude --lang ja
 
 # 3. ステアリング初期化
 # Claude Code 内で：
-# /kiro:steering
+# /kiro-steering
 
 # 4. 最初のSpecを開始
-# /kiro:spec-init infrastructure
+# /kiro-spec-init infrastructure
 
 # 5. 以降、要件→設計→タスク→実装を順に進める
 ```
