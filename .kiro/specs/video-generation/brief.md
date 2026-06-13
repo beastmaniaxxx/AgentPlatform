@@ -6,8 +6,7 @@
 
 ## Current State
 
-`image-generation` SpecによりComfyUI連携・プロンプト拡張パターンは確立済み。動画生成ワークフロー（AnimateDiff・WAN系等）は未構築。
-
+本PR時点ではブリーフのみ追加されており、ComfyUI連携・プロンプト拡張パターンおよび動画生成ワークフローは未構築。まず `image-generation` 完了後に着手する。
 ## Desired Outcome
 
 - ユーザーがプロンプトを入力すると、LLMがプロンプトを拡張し、ComfyUIの動画生成ワークフロー（AnimateDiff・WAN系等）を呼び出して短尺動画を生成する（Text to Video）
