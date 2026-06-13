@@ -177,7 +177,7 @@ docker ← pipelines ← workflows
 | image-generation        | 3     | ComfyUIによるテキスト→画像                  | dify-integration   |
 | reverse-image-search    | 4     | imgpush + SerpAPI                           | dify-integration   |
 | instagram-search        | 5     | Instagram Graph API                         | dify-integration   |
-| multimodal-rag          | 6     | Difyナレッジベース                          | dify-integration   |
+| multimodal-rag          | 6     | Difyナレッジベース                          | dify-integration, reverse-image-search |
 | video-generation        | 7     | ComfyUI動画生成                             | image-generation   |
 | ui-customization        | 8     | Functions / Custom CSS                      | （全機能完了後）   |
 
