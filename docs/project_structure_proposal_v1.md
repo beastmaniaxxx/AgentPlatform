@@ -368,8 +368,7 @@ cc-sddでは多くのファイルを生成するため、権限設定で許可�
      → .kiro/ と .claude/ が生成される
 
 [ステアリング]
-  └─ /kiro:steering
-     → product.md / tech.md / structure.md を編集
+  └─ /kiro-steering
 
 [Spec 1: infrastructure]
   ├─ /kiro:spec-init infrastructure
