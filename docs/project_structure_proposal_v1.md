@@ -172,7 +172,7 @@ docker ← pipelines ← workflows
 | Spec名                  | Phase | 内容                                        | 依存先             |
 | ----------------------- | ----- | ------------------------------------------- | ------------------ |
 | infrastructure          | 1     | Docker基盤、ネットワーク、ボリューム        | -                  |
-| web-search              | 1     | SearXNG連携（ワード検索）                   | infrastructure     |
+| web-search              | 1     | SearXNG連携（ワード検索）                   | infrastructure, dify-integration |
 | dify-integration        | 2     | DifyとOpen WebUIのPipeline中継              | infrastructure     |
 | image-generation        | 3     | ComfyUIによるテキスト→画像                  | dify-integration   |
 | reverse-image-search    | 4     | imgpush + SerpAPI                           | dify-integration   |
