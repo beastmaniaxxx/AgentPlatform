@@ -384,7 +384,7 @@ cc-sddでは多くのファイルを生成するため、権限設定で許可�
 ... 以降、各Specを順次進める ...
 
 [各Spec完了時]
-  ├─ /kiro:validate-impl <spec-name>
+  ├─ /kiro-validate-impl <spec-name>
   ├─ git commit & push
   └─ 次のSpecへ
 ```
