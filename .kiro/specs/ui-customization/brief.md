@@ -6,8 +6,7 @@
 
 ## Current State
 
-`web-search`、`image-generation`、`reverse-image-search`、`instagram-search`、`multimodal-rag`、`video-generation` の各Specが完了し、個別には動作する状態。横断的なUI/UX調整は未実施。
-
+本PR時点ではブリーフのみ追加されており、各機能Specは未完了。横断的なUI/UX（Functions/Custom CSS）調整は未着手であり、依存Spec完了後に着手する。
 ## Desired Outcome
 
 - 全機能を統一的なチャット体験で利用できる（Phase8完了基準）
