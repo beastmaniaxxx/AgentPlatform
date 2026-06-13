@@ -40,7 +40,7 @@
 ## Out of Boundary
 
 - マルチモーダルRAGによる自鯖内検索ロジック自体
-- TinEye等への切り替え（リスク対策として将来検討、本Specでは対象外）
+- TinEye等への切り替え（外部送信ポリシーの更新が必要な可能性があるため将来検討。本Specでは対象外）
 
 ## Upstream / Downstream
 
