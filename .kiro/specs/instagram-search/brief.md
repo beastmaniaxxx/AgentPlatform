@@ -6,8 +6,7 @@
 
 ## Current State
 
-`dify-integration` SpecによりDify基盤は構築済みだが、Instagram Graph API連携は未実装。
-
+本PR時点ではブリーフのみ追加されており、Dify基盤およびInstagram Graph API連携は未実装。まず `dify-integration` 完了後に着手する。
 ## Desired Outcome
 
 - ユーザーがハッシュタグまたは自然言語でリクエストすると、LLMがハッシュタグを抽出する
