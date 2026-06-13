@@ -6,8 +6,7 @@
 
 ## Current State
 
-`dify-integration` Specにより基盤は構築済みだが、Difyのナレッジベース・マルチモーダル埋め込み・Rerankingは未設定。`reverse-image-search` Specは実装済みであることを前提とする（フォールバック先として連携）。
-
+本PR時点ではブリーフのみ追加されており、Difyのナレッジベース設定・マルチモーダル埋め込み・Reranking・フォールバック分岐は未設計/未実装。まず `dify-integration` と `reverse-image-search` の完了が前提となる。
 ## Desired Outcome
 
 - 事前にDifyナレッジベースへ登録した画像（JPG/PNG/GIF、最大2MB）に対し、テキスト→画像・画像→テキスト・画像→画像のクロスモーダル検索ができる
