@@ -6,7 +6,7 @@
 
 ## Current State
 
-`dify-integration` SpecによりDifyワークフロー基盤は構築済みだが、ComfyUIコンテナおよび画像生成ワークフローは未構築。
+本PR時点ではブリーフのみ追加されており、ComfyUIコンテナおよび画像生成/I2I編集ワークフローは未構築。まず `dify-integration` 完了後に着手する。
 
 ## Desired Outcome
 
