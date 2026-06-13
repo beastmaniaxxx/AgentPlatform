@@ -6,7 +6,7 @@
 
 ## Current State
 
-`infrastructure` Specにより基盤コンテナ（Open WebUI、Ollama、SearXNG）は稼働しているが、Difyコンテナおよびそれに接続するPipelineスクリプトは未構築。
+本PR時点ではブリーフのみ追加されており、DifyコンテナおよびOpen WebUI ↔ Dify のPipeline中継は未構築。まず `infrastructure` 完了後に着手する。
 
 ## Desired Outcome
 
