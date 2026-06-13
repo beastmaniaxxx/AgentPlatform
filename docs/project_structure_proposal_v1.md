@@ -306,11 +306,11 @@ cc-sddではトップレベルに `CLAUDE.md` を置き、Claude Codeに対す�
 
 ## 開発フロー
 1. ステアリングを更新：`/kiro-steering`
-2. 新Spec開始：`/kiro:spec-init <feature-name>`
-3. 要件定義：`/kiro:spec-requirements <feature-name>`
-4. 設計：`/kiro:spec-design <feature-name>`
-5. タスク分解：`/kiro:spec-tasks <feature-name>`
-6. 実装：`/kiro:spec-impl <feature-name>`
+2. 新Spec開始：`/kiro-spec-init <feature-name>`
+3. 要件定義：`/kiro-spec-requirements <feature-name>`
+4. 設計：`/kiro-spec-design <feature-name>`
+5. タスク分解：`/kiro-spec-tasks <feature-name>`
+6. 実装：`/kiro-impl <feature-name>`
 
 ## 進行中のSpec
 `.kiro/specs/` 配下の spec.json の status を参照。
