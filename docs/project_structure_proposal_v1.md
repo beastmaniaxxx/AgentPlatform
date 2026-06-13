@@ -371,11 +371,11 @@ cc-sddでは多くのファイルを生成するため、権限設定で許可�
   └─ /kiro-steering
 
 [Spec 1: infrastructure]
-  ├─ /kiro:spec-init infrastructure
-  ├─ /kiro:spec-requirements infrastructure
-  ├─ /kiro:spec-design infrastructure
-  ├─ /kiro:spec-tasks infrastructure
-  └─ /kiro:spec-impl infrastructure
+  ├─ /kiro-spec-init infrastructure
+  ├─ /kiro-spec-requirements infrastructure
+  ├─ /kiro-spec-design infrastructure
+  ├─ /kiro-spec-tasks infrastructure
+  └─ /kiro-impl infrastructure
      → docker-compose.yml が完成
 
 [Spec 2: web-search]
