@@ -6,7 +6,7 @@
 
 ## Current State
 
-`dify-integration` SpecによりDify基盤は構築済みだが、画像のbase64→URL変換（imgpush）やSerpAPI連携は未実装。
+本PR時点ではブリーフのみ追加されており、Dify基盤・画像のbase64→URL変換（imgpush）・SerpAPI連携は未実装。まず `dify-integration` 完了後に着手する。
 
 ## Desired Outcome
 
