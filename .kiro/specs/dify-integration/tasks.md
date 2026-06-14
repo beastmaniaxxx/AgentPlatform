@@ -20,7 +20,7 @@
   - 観測可能完了: `docker compose up -d dify-db dify-redis`でコンテナが起動し、`docker compose exec dify-db pg_isready`が成功を返す。`docker compose restart dify-db`後もデータが保持される（ボリュームがマウントされている）
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2.2 Dify Sandbox・SSRF Proxyサービスの追加
+- [x] 2.2 Dify Sandbox・SSRF Proxyサービスの追加
   - `docker-compose.yml`に`dify-ssrf-proxy`（squid、1.2でvendorした`docker/dify/ssrf_proxy/`をマウント）と`dify-sandbox`サービスを追加し、`agentplatform-net`に接続する
   - `dify-sandbox`が`dify-ssrf-proxy`経由でのみ外部送信を行う構成（公式構成のネットワーク・環境変数設定）とする
   - 観測可能完了: `docker compose up -d dify-ssrf-proxy dify-sandbox`で両コンテナが起動し、`docker compose logs dify-sandbox`にvendorしたsquid設定の読み込みエラーが出力されない

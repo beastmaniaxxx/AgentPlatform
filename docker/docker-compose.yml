@@ -11,6 +11,8 @@ volumes:
   searxng-data:
   dify-db-data:
   dify-redis-data:
+  dify-sandbox-dependencies:
+  dify-sandbox-conf:
 
 services:
   ollama:
@@ -81,6 +83,52 @@ services:
       - dify-redis-data:/data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a ${DIFY_REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  dify-ssrf-proxy:
+    image: ubuntu/squid:latest
+    networks:
+      - agentplatform-net
+    depends_on:
+      dify-sandbox:
+        condition: service_healthy
+    volumes:
+      - ./dify/ssrf_proxy/squid.conf.template:/etc/squid/squid.conf.template
+      - ./dify/ssrf_proxy/docker-entrypoint.sh:/docker-entrypoint-mount.sh
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "cp /docker-entrypoint-mount.sh /docker-entrypoint.sh && sed -i 's/\r$$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh && /docker-entrypoint.sh",
+      ]
+    environment:
+      - HTTP_PORT=3128
+      - COREDUMP_DIR=/var/spool/squid
+      - REVERSE_PROXY_PORT=8194
+      - SANDBOX_HOST=dify-sandbox
+      - SANDBOX_PORT=8194
+
+  dify-sandbox:
+    image: langgenius/dify-sandbox:0.2.15
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      - API_KEY=${DIFY_SANDBOX_API_KEY}
+      - GIN_MODE=release
+      - WORKER_TIMEOUT=15
+      - ENABLE_NETWORK=true
+      - HTTP_PROXY=http://dify-ssrf-proxy:3128
+      - HTTPS_PROXY=http://dify-ssrf-proxy:3128
+      - SANDBOX_PORT=8194
+    volumes:
+      - dify-sandbox-dependencies:/dependencies
+      - dify-sandbox-conf:/conf
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8194/health"]
       interval: 5s
       timeout: 5s
       retries: 30
