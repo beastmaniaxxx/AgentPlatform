@@ -187,6 +187,10 @@ WSL2からWindowsドライブ（`/mnt/d/`）への読み込みは、ネイティ
 
 ## infrastructure Specへの追加要件案
 
+> **Note**: 以下はdiscovery時点の検討メモであり、`REQ-INF-XXX`は仮のID表記です。
+> 正式な要件は `.kiro/specs/infrastructure/requirements.md` の Requirement 6（6.1〜6.4）に
+> 数値IDで反映済みのため、本セクションの`REQ-INF-XXX`をそのまま仕様に転記しないこと。
+
 要件定義書に以下を盛り込むと、後続Specで一貫した取り扱いができます。
 
 ```markdown

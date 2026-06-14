@@ -7,6 +7,7 @@
 - Docker / Docker Composeが利用可能であること
 - `docker/.env.example`を`docker/.env`としてコピーし、必要に応じて値を編集していること
   - `LMSTUDIO_MODELS_PATH`には、LM Studioのモデルディレクトリのホスト側パス（存在するディレクトリ）を指定する。LM Studioを利用しない場合も、空ディレクトリ等の存在するパスを指定する
+- `docker/searxng/settings.yml.example`を`settings.yml`としてコピーし、`server.secret_key`を利用者ごとのランダムな値（例: `openssl rand -hex 32`）に置き換えていること
 - GPUを利用する場合は`docker/docker-compose.override.yml.example`を`docker-compose.override.yml`としてコピーしていること（GPU非搭載環境ではコピーしない）
 
 ## 1. `docker compose up`実行手順
@@ -40,7 +41,7 @@ docker compose exec open-webui sh -c "getent hosts ollama"
 ブラウザを使わずに確認する場合は、以下でHTMLが返ることを確認する。
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<OPEN_WEBUI_PORT>/
 ```
 
 ## 3. Ollamaコンテナ停止時のOpen WebUI側エラー表示確認手順

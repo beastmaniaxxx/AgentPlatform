@@ -24,7 +24,7 @@
   - `OLLAMA_HOST=0.0.0.0`を設定し、Ollama管理データ用の名前付きボリュームをマウントする
   - `env_file`で`docker/.env`を参照するよう設定する
   - `.env`の`LMSTUDIO_MODELS_PATH`が指すホストディレクトリをコンテナ内`/lmstudio-models`に読み取り専用（`:ro`）でバインドマウントする
-  - 観測可能完了: `docker compose up -d ollama`でコンテナが起動し、`docker compose exec ollama curl -s localhost:11434`がOllamaの応答を返す。また`docker compose exec ollama ls /lmstudio-models`でLM Studio側のGGUFファイル一覧が参照でき、同コンテナ内からの書き込み（例: `touch /lmstudio-models/test`）が拒否される
+  - 観測可能完了: `docker compose up -d ollama`でコンテナが起動し、`docker compose exec ollama ollama list`がOllamaの応答（モデル一覧）を返す（`ollama/ollama:latest`イメージには`curl`/`wget`が含まれないため`ollama`コマンドで確認する）。また`docker compose exec ollama ls /lmstudio-models`でLM Studio側のGGUFファイル一覧が参照でき、同コンテナ内からの書き込み（例: `touch /lmstudio-models/test`）が拒否される
   - _Requirements: 2.2, 4.3, 6.1, 6.2, 6.3_
 
 - [x] 2.2 Open WebUIサービス定義の追加

@@ -114,7 +114,8 @@ docker/
 ├── networks.md                  # 共有ネットワーク（agentplatform-net）の命名・拡張方針の説明
 ├── model-sharing.md              # LM StudioモデルディレクトリのマウントとModelfile経由の取り込み手順
 └── searxng/
-    └── settings.yml              # JSON出力有効化済みのSearXNG設定（Git管理対象）
+    ├── settings.yml              # JSON出力有効化済みのSearXNG設定（secret_keyを含むため、Git管理外）
+    └── settings.yml.example      # settings.yml作成用テンプレート（Git管理対象）
 
 tests/
 └── smoke/
@@ -122,9 +123,9 @@ tests/
 ```
 
 ### Modified Files
-- `.gitignore` — `docker/.env` と `docker/docker-compose.override.yml` をGit管理対象から除外するルールを追加
+- `.gitignore` — `docker/.env`・`docker/docker-compose.override.yml`・`docker/searxng/settings.yml` をGit管理対象から除外するルールを追加
 
-> `docker-compose.override.yml` はGPU設定など環境依存の値を含むため、利用者ごとに `docker-compose.override.yml.example` をコピーして作成する運用とし、本体ファイルは `.gitignore` で除外する。`docker-compose.yml` 本体・`searxng/settings.yml`・各 `.example` ファイルはGit管理対象とする。
+> `docker-compose.override.yml` はGPU設定など環境依存の値を含むため、利用者ごとに `docker-compose.override.yml.example` をコピーして作成する運用とし、本体ファイルは `.gitignore` で除外する。同様に `searxng/settings.yml` は `server.secret_key`（インスタンス固有の値）を含むため、`searxng/settings.yml.example` をコピーして作成する運用とし、本体ファイルは `.gitignore` で除外する。`docker-compose.yml` 本体・各 `.example` ファイルはGit管理対象とする。
 
 ## System Flows
 

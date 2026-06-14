@@ -9,3 +9,4 @@
 # Docker環境固有の設定（機密情報・ホスト依存パス・GPU設定を含む）
 docker/.env
 docker/docker-compose.override.yml
+docker/searxng/settings.yml
