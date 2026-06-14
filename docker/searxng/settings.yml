@@ -1,0 +1,20 @@
+# SearXNG設定
+#
+# searx/settings.yml（公式デフォルト）をベースに、本Specで必要な設定のみ上書きする。
+# use_default_settings: true により、ここで指定しない項目は公式デフォルト値が使われる。
+use_default_settings: true
+
+general:
+  instance_name: "AgentPlatform SearXNG"
+
+search:
+  formats:
+    - html
+    - json
+
+server:
+  # ローカル単一ホストでの個人利用を前提とした値。外部公開する場合は変更すること。
+  secret_key: "3818c498d513b5ecfaf86609298fcaccdc1cda44c3b7d05de2d77eb398237fb"
+  # `/search?format=json` をブロックなく利用できるようにするため、レートリミッタを無効化する。
+  # 外部非公開構成であることが前提（docker/networks.md参照）。
+  limiter: false

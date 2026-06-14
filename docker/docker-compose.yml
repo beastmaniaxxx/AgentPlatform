@@ -35,3 +35,16 @@ services:
       - "${OPEN_WEBUI_PORT}:8080"
     volumes:
       - open-webui-data:/app/backend/data
+
+  searxng:
+    image: searxng/searxng:latest
+    networks:
+      - agentplatform-net
+    # env_fileは付与しない: このイメージはSEARXNG_PORTをコンテナ内部のリスニングポートとして
+    # 解釈するため、ホスト側ポート用の.envのSEARXNG_PORTを渡すと内部ポートとport mapping
+    # （${SEARXNG_PORT}:8080）が不整合になる。settings.ymlは環境変数に依存しないため不要。
+    ports:
+      - "${SEARXNG_PORT}:8080"
+    volumes:
+      - searxng-data:/etc/searxng
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro

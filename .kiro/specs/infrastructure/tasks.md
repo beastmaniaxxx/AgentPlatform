@@ -35,7 +35,7 @@
   - _Requirements: 2.1, 2.2, 4.3_
   - _Depends: 2.1_
 
-- [ ] 2.3 SearXNGサービス定義とJSON出力設定の追加
+- [x] 2.3 SearXNGサービス定義とJSON出力設定の追加
   - `docker/searxng/settings.yml`を作成し、`search.formats`に`html`と`json`を含め、`server.limiter: false`を設定する
   - `docker-compose.yml`に`searxng/searxng:latest`イメージのサービスを追加し、`settings.yml`をマウントして`agentplatform-net`に接続、ホストアクセス用ポートを`.env`の値で公開する
   - 観測可能完了: `curl "http://localhost:<port>/search?format=json&q=test"`がJSON形式のレスポンスを返す
@@ -73,3 +73,4 @@
 - 1.1: `docker compose config` は、サービスから参照されていないトップレベルの`networks:`/`volumes:`定義を出力から除外する（Compose v5.1.4で確認）。`docker/docker-compose.yml`には`agentplatform-net`ネットワークと`open-webui-data`/`ollama-data`/`searxng-data`ボリュームをソースYAMLとして定義済み。これらが`config`の出力に現れるのは、2.1〜2.4でサービスが各リソースを参照した時点になる（3.2での統合確認時に解決）。
 - 2.1: `docker-compose.yml`にトップレベル`name: agentplatform`を追加した。Compose v5のデフォルトプロジェクト名はディレクトリ名（本リポジトリでは`docker`）になるため、同じく`docker`ディレクトリ名でデプロイされた別プロジェクト（Dify）とプロジェクト名が衝突し、`docker compose up --remove-orphans`実行時に無関係なコンテナ・ネットワークが削除される事故が発生した（リカバリ済み、データ消失なし）。`name: agentplatform`によりプロジェクト名を固定し再発を防止する。
 - 2.1: `ollama/ollama:latest`イメージには`curl`/`wget`が含まれない。「Ollamaの応答を返す」ことの確認には`docker compose exec ollama ollama list`（同じローカルAPIを呼ぶCLI）を使うこと。3.1/3.2のスモークテスト手順でも同様に`ollama list`等を使用する。
+- 2.3: `searxng`サービスには`env_file: .env`を付与しない。`searxng/searxng:latest`イメージは`SEARXNG_PORT`環境変数をコンテナ内部のリスニングポートとして使用するため、ホスト側ポート用の`.env`の`SEARXNG_PORT`を渡すと内部ポートと`ports:`マッピング（`${SEARXNG_PORT}:8080`）が不整合になる。`${SEARXNG_PORT}`の変数展開はCompose本体が`.env`から自動で行うため`env_file`は不要。
