@@ -49,7 +49,7 @@
   - _Requirements: 1.1, 1.2_
   - _Depends: 2.4_
 
-- [ ] 3. Core: Open WebUI Pipelinesランタイムの追加
+- [x] 3. Core: Open WebUI Pipelinesランタイムの追加
 - [x] 3.1 pipelinesサービスのdocker-compose追加
   - `docker-compose.yml`に`pipelines`サービス（`ghcr.io/open-webui/pipelines:main`）を追加し、リポジトリの`pipelines/`ディレクトリをコンテナの`/app/pipelines`にマウントする
   - `agentplatform-net`に接続し、`127.0.0.1:${PIPELINES_PORT}:9099`でホストに公開する
