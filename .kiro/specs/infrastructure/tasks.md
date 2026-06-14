@@ -18,7 +18,7 @@
   - 観測可能完了: `docker/networks.md`が作成され、ネットワーク名・拡張手順・運用上の注意の3項目が記載されている
   - _Requirements: 1.4, 5.3_
 
-- [ ] 2. Core: 各サービス定義の追加
+- [x] 2. Core: 各サービス定義の追加
 - [x] 2.1 Ollamaサービス定義の追加
   - `docker-compose.yml`に`ollama/ollama:latest`イメージのサービスを追加し、`agentplatform-net`に接続する
   - `OLLAMA_HOST=0.0.0.0`を設定し、Ollama管理データ用の名前付きボリュームをマウントする
