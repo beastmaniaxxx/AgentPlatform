@@ -1,0 +1,27 @@
+# SearXNG設定テンプレート
+#
+# 使い方:
+#   1. このファイルを `settings.yml` としてコピーする
+#      （`settings.yml` はGit管理対象外です。.gitignore参照）
+#   2. server.secret_key を、利用者ごとに生成したランダムな値に置き換える
+#      例: openssl rand -hex 32
+#
+# searx/settings.yml（公式デフォルト）をベースに、本Specで必要な設定のみ上書きする。
+# use_default_settings: true により、ここで指定しない項目は公式デフォルト値が使われる。
+use_default_settings: true
+
+general:
+  instance_name: "AgentPlatform SearXNG"
+
+search:
+  formats:
+    - html
+    - json
+
+server:
+  # インスタンス固有の値に置き換えること（例: openssl rand -hex 32）。
+  # この値はセッション・CSRF保護に使われるため、コミットしないこと。
+  secret_key: "CHANGE_ME_GENERATE_WITH_OPENSSL_RAND_HEX_32"
+  # `/search?format=json` をブロックなく利用できるようにするため、レートリミッタを無効化する。
+  # 外部非公開構成であることが前提（docker/networks.md参照）。
+  limiter: false

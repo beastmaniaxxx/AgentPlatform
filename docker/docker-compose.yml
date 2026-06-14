@@ -1,0 +1,50 @@
+name: agentplatform
+
+networks:
+  agentplatform-net:
+    name: agentplatform-net
+    driver: bridge
+
+volumes:
+  open-webui-data:
+  ollama-data:
+  searxng-data:
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama-data:/root/.ollama
+      - ${LMSTUDIO_MODELS_PATH}:/lmstudio-models:ro
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    networks:
+      - agentplatform-net
+    depends_on:
+      - ollama
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${OPEN_WEBUI_PORT}:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
+
+  searxng:
+    image: searxng/searxng:latest
+    networks:
+      - agentplatform-net
+    # env_fileは付与しない: このイメージはSEARXNG_PORTをコンテナ内部のリスニングポートとして
+    # 解釈するため、ホスト側ポート用の.envのSEARXNG_PORTを渡すと内部ポートとport mapping
+    # （${SEARXNG_PORT}:8080）が不整合になる。settings.ymlは環境変数に依存しないため不要。
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT}:8080"
+    volumes:
+      - searxng-data:/etc/searxng
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
