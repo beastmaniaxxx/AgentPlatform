@@ -1,3 +1,5 @@
+name: agentplatform
+
 networks:
   agentplatform-net:
     name: agentplatform-net
@@ -8,4 +10,15 @@ volumes:
   ollama-data:
   searxng-data:
 
-services: {}
+services:
+  ollama:
+    image: ollama/ollama:latest
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama-data:/root/.ollama
+      - ${LMSTUDIO_MODELS_PATH}:/lmstudio-models:ro

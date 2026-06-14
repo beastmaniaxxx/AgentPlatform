@@ -19,7 +19,7 @@
   - _Requirements: 1.4, 5.3_
 
 - [ ] 2. Core: 各サービス定義の追加
-- [ ] 2.1 Ollamaサービス定義の追加
+- [x] 2.1 Ollamaサービス定義の追加
   - `docker-compose.yml`に`ollama/ollama:latest`イメージのサービスを追加し、`agentplatform-net`に接続する
   - `OLLAMA_HOST=0.0.0.0`を設定し、Ollama管理データ用の名前付きボリュームをマウントする
   - `env_file`で`docker/.env`を参照するよう設定する
@@ -71,3 +71,5 @@
 
 ## Implementation Notes
 - 1.1: `docker compose config` は、サービスから参照されていないトップレベルの`networks:`/`volumes:`定義を出力から除外する（Compose v5.1.4で確認）。`docker/docker-compose.yml`には`agentplatform-net`ネットワークと`open-webui-data`/`ollama-data`/`searxng-data`ボリュームをソースYAMLとして定義済み。これらが`config`の出力に現れるのは、2.1〜2.4でサービスが各リソースを参照した時点になる（3.2での統合確認時に解決）。
+- 2.1: `docker-compose.yml`にトップレベル`name: agentplatform`を追加した。Compose v5のデフォルトプロジェクト名はディレクトリ名（本リポジトリでは`docker`）になるため、同じく`docker`ディレクトリ名でデプロイされた別プロジェクト（Dify）とプロジェクト名が衝突し、`docker compose up --remove-orphans`実行時に無関係なコンテナ・ネットワークが削除される事故が発生した（リカバリ済み、データ消失なし）。`name: agentplatform`によりプロジェクト名を固定し再発を防止する。
+- 2.1: `ollama/ollama:latest`イメージには`curl`/`wget`が含まれない。「Ollamaの応答を返す」ことの確認には`docker compose exec ollama ollama list`（同じローカルAPIを呼ぶCLI）を使うこと。3.1/3.2のスモークテスト手順でも同様に`ollama list`等を使用する。
