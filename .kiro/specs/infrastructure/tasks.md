@@ -13,7 +13,7 @@
   - 観測可能完了: `docker/.env.example`をコピーして`docker/.env`を作成しても`git status`でUntracked/Trackedに表示されない
   - _Requirements: 4.1, 4.2, 6.3_
 
-- [ ] 1.3 共有ネットワーク・拡張方針ドキュメントの作成
+- [x] 1.3 共有ネットワーク・拡張方針ドキュメントの作成
   - `docker/networks.md`に`agentplatform-net`の命名理由、後続Specがサービス・ボリュームを同一`docker-compose.yml`に追記する方法、SearXNGの`server.limiter: false`設定に関する運用上の注意（外部非公開前提）を記載する
   - 観測可能完了: `docker/networks.md`が作成され、ネットワーク名・拡張手順・運用上の注意の3項目が記載されている
   - _Requirements: 1.4, 5.3_
