@@ -13,6 +13,7 @@ volumes:
   dify-redis-data:
   dify-sandbox-dependencies:
   dify-sandbox-conf:
+  dify-plugin-daemon-storage:
 
 services:
   ollama:
@@ -66,6 +67,7 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - dify-db-data:/var/lib/postgresql/data
+      - ./dify/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${DIFY_DB_USERNAME}", "-d", "${DIFY_DB_DATABASE}"]
       interval: 5s
@@ -132,3 +134,51 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+
+  dify-plugin-daemon:
+    image: langgenius/dify-plugin-daemon:0.6.1-local
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+    environment:
+      # dify-dbへの接続（dify_pluginデータベースはdocker/dify/db-init/で初回起動時に作成される）
+      - DB_HOST=dify-db
+      - DB_PORT=5432
+      - DB_USERNAME=${DIFY_DB_USERNAME}
+      - DB_PASSWORD=${DIFY_DB_PASSWORD}
+      - DB_DATABASE=dify_plugin
+      - DB_SSL_MODE=disable
+      # dify-redisへの接続
+      - REDIS_HOST=dify-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${DIFY_REDIS_PASSWORD}
+      - REDIS_USE_SSL=false
+      # Plugin Daemon自身の設定
+      - SERVER_PORT=5002
+      - SERVER_KEY=${DIFY_PLUGIN_DAEMON_KEY}
+      - MAX_PLUGIN_PACKAGE_SIZE=52428800
+      - PPROF_ENABLED=false
+      - PLUGIN_REMOTE_INSTALLING_HOST=0.0.0.0
+      - PLUGIN_REMOTE_INSTALLING_PORT=5003
+      - PLUGIN_WORKING_PATH=/app/storage/cwd
+      - FORCE_VERIFYING_SIGNATURE=true
+      - PYTHON_ENV_INIT_TIMEOUT=120
+      - PLUGIN_MAX_EXECUTION_TIMEOUT=600
+      - PLUGIN_STDIO_BUFFER_SIZE=1024
+      - PLUGIN_STDIO_MAX_BUFFER_SIZE=5242880
+      - PLUGIN_STORAGE_TYPE=local
+      - PLUGIN_STORAGE_LOCAL_ROOT=/app/storage
+      - PLUGIN_INSTALLED_PATH=plugin
+      - PLUGIN_PACKAGE_CACHE_PATH=plugin_packages
+      - PLUGIN_MEDIA_CACHE_PATH=assets
+      # dify-apiの内部APIへの接続（dify-api追加はタスク2.4）
+      - DIFY_INNER_API_URL=http://dify-api:5001
+      - DIFY_INNER_API_KEY=${DIFY_PLUGIN_INNER_API_KEY}
+    volumes:
+      - dify-plugin-daemon-storage:/app/storage

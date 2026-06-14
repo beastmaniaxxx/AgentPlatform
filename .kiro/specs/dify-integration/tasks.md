@@ -27,7 +27,7 @@
   - _Requirements: 1.1, 1.2_
   - _Depends: 1.2_
 
-- [ ] 2.3 Dify Plugin Daemonサービスの追加
+- [x] 2.3 Dify Plugin Daemonサービスの追加
   - `docker-compose.yml`に`dify-plugin-daemon`サービスを追加し、`dify-db`・`dify-redis`への接続環境変数を設定して`agentplatform-net`に接続する
   - プラグインストレージ用の名前付きボリュームを定義する
   - 観測可能完了: `docker compose up -d dify-plugin-daemon`でコンテナが起動し、`docker compose exec dify-plugin-daemon`からプロセスがリスニング状態であることを確認できる
