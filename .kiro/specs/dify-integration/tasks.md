@@ -42,7 +42,7 @@
   - _Requirements: 1.1, 1.2, 1.3_
   - _Depends: 2.1, 2.2, 2.3_
 
-- [ ] 2.5 Dify Webサービスの追加
+- [x] 2.5 Dify Webサービスの追加
   - `docker-compose.yml`に`dify-web`サービスを追加し、`CONSOLE_API_URL`/`APP_API_URL`を`dify-api`のコンテナ名URLに設定して`agentplatform-net`に接続する
   - `127.0.0.1:${DIFY_WEB_PORT}:3000`でホストに公開する
   - 観測可能完了: `docker compose up -d dify-web`後、ブラウザまたは`curl http://localhost:${DIFY_WEB_PORT}`でDifyの初期セットアップ/ログイン画面が表示される

@@ -308,3 +308,20 @@ services:
         condition: service_started
     volumes:
       - dify-app-storage:/app/api/storage
+
+  dify-web:
+    image: langgenius/dify-web:1.14.2
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      # nginxを介さずブラウザから直接dify-apiへアクセスするため、
+      # コンテナ名ではなくホスト公開ポート（localhost）を指定する。
+      CONSOLE_API_URL: http://localhost:${DIFY_API_PORT}
+      APP_API_URL: http://localhost:${DIFY_API_PORT}
+    depends_on:
+      dify-api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DIFY_WEB_PORT}:3000"
