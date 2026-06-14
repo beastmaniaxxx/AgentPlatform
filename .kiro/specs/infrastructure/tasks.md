@@ -48,7 +48,7 @@
   - _Requirements: 1.3, 5.2_
   - _Depends: 2.1_
 
-- [ ] 2.5 LM Studioモデル共有手順ドキュメントの作成
+- [x] 2.5 LM Studioモデル共有手順ドキュメントの作成
   - `docker/model-sharing.md`に、`LMSTUDIO_MODELS_PATH`の設定方法、`/lmstudio-models`配下のGGUFファイルを指すModelfileの作成例、`ollama create`によるモデル取り込み手順を記載する
   - ディスク容量の二重消費（GGUFがOllama管理データ側にコピーされる）、LM Studio側のモデル更新時に`ollama create`を再実行する必要があること、WSL2経由での読み込みは初回ロードのみ影響することを注意事項として記載する
   - 観測可能完了: `docker/model-sharing.md`が作成され、Modelfile作成例・`ollama create`コマンド例・容量/更新追従に関する注意事項が記載されている
