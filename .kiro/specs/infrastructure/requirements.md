@@ -15,9 +15,9 @@
 
 ## Boundary Context
 
-- **In scope**: `docker-compose.yml` / `docker-compose.override.yml` によるOpen WebUI・Ollama・SearXNGコンテナの起動、3サービスが同一Dockerネットワーク上で名前解決できるネットワーク構成、`.env.example` の提供と `.env` のGit除外、SearXNGのJSON出力（`/search?format=json`）有効化、Open WebUIからのチャット動作確認、SearXNGの `/search?format=json` 応答確認
-- **Out of scope**: Dify・ComfyUI・imgpush等、後続フェーズで追加されるサービスの定義（各Specで対応）。OllamaにロードするLLMモデルの選定・ダウンロード・チューニング。バックアップ・更新スクリプト（`scripts/`配下）。LLM要約付きのWeb検索機能（`web-search` Specで対応）
-- **Adjacent expectations**: 後続Spec（`dify-integration` 等）は本Specが構築したDockerネットワーク・ボリューム構成にサービスを追加できることを前提とする。`web-search` Specは本Specが有効化したSearXNGの `/search?format=json` エンドポイントに依存する
+- **In scope**: `docker-compose.yml` / `docker-compose.override.yml` によるOpen WebUI・Ollama・SearXNGコンテナの起動、3サービスが同一Dockerネットワーク上で名前解決できるネットワーク構成、`.env.example` の提供と `.env` のGit除外、SearXNGのJSON出力（`/search?format=json`）有効化、Open WebUIからのチャット動作確認、SearXNGの `/search?format=json` 応答確認、LM Studioが管理するモデルディレクトリのOllamaサービスへの読み取り専用マウント構成
+- **Out of scope**: Dify・ComfyUI・imgpush等、後続フェーズで追加されるサービスの定義（各Specで対応）。OllamaにロードするLLMモデルの選定・ダウンロード・チューニング。バックアップ・更新スクリプト（`scripts/`配下）。LLM要約付きのWeb検索機能（`web-search` Specで対応）。個々のモデルのModelfile作成・`ollama create`の実行・チャットテンプレートの設定（モデルごとの運用作業）
+- **Adjacent expectations**: 後続Spec（`dify-integration` 等）は本Specが構築したDockerネットワーク・ボリューム構成にサービスを追加できることを前提とする。`web-search` Specは本Specが有効化したSearXNGの `/search?format=json` エンドポイントに依存する。LM Studioのモデルディレクトリのホスト側パスは利用者の環境（ドライブ構成）に依存するため、環境変数で設定する想定とする
 
 ### Requirement 1: Docker Compose基盤とネットワーク構成
 
@@ -68,3 +68,14 @@
 1. The Infrastructure基盤 shall Windows 11 + WSL2上のDocker Compose環境で起動できる構成を提供する。
 2. Where NVIDIA GPU（CUDA対応）が利用可能な場合、the Ollamaサービス shall そのGPUを使用してLLM推論を実行できる状態で構成される。
 3. The Infrastructure基盤 shall SearXNGの検索プロバイダへのアウトバウンド接続以外の外部ネットワーク接続を必要としない。
+
+### Requirement 6: LM Studioモデル資産の共有
+
+**Objective:** 個人開発者として、LM Studioが管理するGGUFモデル資産をOllamaサービスから参照できるようにしたい。それにより、同一モデルの重複ダウンロードを避けられる。
+
+#### Acceptance Criteria
+
+1. The Infrastructure基盤 shall LM Studioのモデルディレクトリを読み取り専用でOllamaサービスにマウントできる構成を提供する。
+2. The Infrastructure基盤 shall Ollamaの管理データ（manifests・blobs等）をLM Studioのモデルディレクトリとは独立したボリュームに保持する。
+3. The Infrastructure基盤 shall マウントするLM Studioのモデルディレクトリのホスト側パスを環境変数で指定できる状態を提供する。
+4. Where LM Studioのモデルディレクトリがマウントされている場合、the Ollamaサービス shall マウントされたGGUFファイルを参照するModelfileからモデルを作成できる状態を提供する。

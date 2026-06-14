@@ -77,6 +77,23 @@
 - NVIDIA Container Toolkitが未導入の環境ではGPU予約付きのOllama起動が失敗する — `docker-compose.override.yml` のGPU設定をコメントアウト/削除すればCPUモードで起動可能であることをドキュメント化する
 - SearXNGの `server.limiter: false` はAPIへの過剰アクセスを防ぐ機構を無効化する — ローカル単一ホスト・外部非公開構成であることを前提とし、`docker/networks.md` 等に運用上の注意を記載する
 - Open WebUI起動直後はOllamaのモデル未ダウンロード状態のため、チャット応答にはモデルのpullが別途必要 — 本Specのスコープ外（要件定義のOut of scopeで明示済み）だが、起動確認手順にその旨を記載する
+- LM StudioのGGUFをOllamaに`ollama create`で取り込む際、デフォルトではOllama管理データ（blobs）側にコピーされ、Windows + WSL2 + 異なるドライブ間（D:→Docker vhdx）ではハードリンクが効かずディスク容量を二重消費する（例: 8GBモデルなら計16GB） — `docker/model-sharing.md`に容量計画上の注意として明記する
+- WSL2から`/mnt/d/`配下（Windowsドライブ）への読み込みはネイティブLinux FSより低速な場合がある — モデルの初回ロード時のみ影響し推論性能自体には影響しないため、許容リスクとして記録する
+- LM Studio側でモデルファイルを更新（再ダウンロード等）してもOllamaは自動追従しない — `ollama create`の再実行が必要であることを`docker/model-sharing.md`に運用手順として記載する
+
+## Additional Research Log
+
+### LM Studioモデル資産の共有方式
+- **Context**: ユーザーが既にDドライブのLM Studio配下にGGUFモデルを保持しており、Ollamaから再利用したい（要件6）
+- **Sources Consulted**: ユーザー提供の事前検討資料「2026-06-14_difference_in_model_manage.md」（`docs/proposal`配下）
+- **Findings**:
+  - LM Studioは`models/<publisher>/<repo>/file.gguf`の人間可読なディレクトリ構造でGGUFを管理するが、Ollamaは取り込み時にSHA256ベースの独自管理形式（`manifests/`・`blobs/`）に変換するため、単純なパス共有では`ollama list`に表示されない
+  - Modelfileの`FROM <path>`にGGUFファイルパスを指定し`ollama create <name> -f Modelfile`を実行することで取り込み可能。シンボリックリンクによる直接統合（方法③）はハッシュ計算・manifest手動作成が必要で非実用的なため不採用
+  - Docker構成では、LM Studioのモデルディレクトリをコンテナに読み取り専用でバインドマウントし、コンテナ内からModelfileでFROM参照する方法（方法②）が現環境（Windows+WSL2+Docker）に適合する
+- **Implications**:
+  - Ollamaサービスに`/lmstudio-models:ro`の読み取り専用バインドマウントを追加し、ホスト側パスは`.env`の`LMSTUDIO_MODELS_PATH`で利用者ごとに設定する
+  - Ollamaの管理データ（`ollama-data`ボリューム）はLM Studioのモデルディレクトリと完全に独立させ、書き込みはOllama管理データ側のみで発生させる
+  - Modelfile作成・`ollama create`の実行・テンプレート指定は個々のモデルごとの運用作業であり、本Specでは手順のドキュメント化のみを担当する（Out of Boundary）
 
 ## References
 - [Ollama + Open-Webui + Nvidia/CUDA + Docker + docker-compose](https://gist.github.com/usrbinkat/de44facc683f954bf0cca6c87e2f9f88) — GPU対応のCompose構成例

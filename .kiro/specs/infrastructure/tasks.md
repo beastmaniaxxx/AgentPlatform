@@ -8,10 +8,10 @@
   - _Requirements: 1.2, 1.4_
 
 - [ ] 1.2 環境変数テンプレートとGit除外設定の作成
-  - `docker/.env.example`に各サービスが必要とするポート番号・`SEARXNG_BASE_URL`・`OLLAMA_BASE_URL`等をコメント付きで列挙する
+  - `docker/.env.example`に各サービスが必要とするポート番号・`SEARXNG_BASE_URL`・`OLLAMA_BASE_URL`・`LMSTUDIO_MODELS_PATH`（LM Studioモデルディレクトリのホスト側パス）等をコメント付きで列挙する
   - リポジトリの`.gitignore`に`docker/.env`と`docker/docker-compose.override.yml`を追加する
   - 観測可能完了: `docker/.env.example`をコピーして`docker/.env`を作成しても`git status`でUntracked/Trackedに表示されない
-  - _Requirements: 4.1, 4.2_
+  - _Requirements: 4.1, 4.2, 6.3_
 
 - [ ] 1.3 共有ネットワーク・拡張方針ドキュメントの作成
   - `docker/networks.md`に`agentplatform-net`の命名理由、後続Specがサービス・ボリュームを同一`docker-compose.yml`に追記する方法、SearXNGの`server.limiter: false`設定に関する運用上の注意（外部非公開前提）を記載する
@@ -21,10 +21,11 @@
 - [ ] 2. Core: 各サービス定義の追加
 - [ ] 2.1 Ollamaサービス定義の追加
   - `docker-compose.yml`に`ollama/ollama:latest`イメージのサービスを追加し、`agentplatform-net`に接続する
-  - `OLLAMA_HOST=0.0.0.0`を設定し、Ollama用ボリュームをマウントする
+  - `OLLAMA_HOST=0.0.0.0`を設定し、Ollama管理データ用の名前付きボリュームをマウントする
   - `env_file`で`docker/.env`を参照するよう設定する
-  - 観測可能完了: `docker compose up -d ollama`でコンテナが起動し、`docker compose exec ollama curl -s localhost:11434`がOllamaの応答を返す
-  - _Requirements: 2.2, 4.3_
+  - `.env`の`LMSTUDIO_MODELS_PATH`が指すホストディレクトリをコンテナ内`/lmstudio-models`に読み取り専用（`:ro`）でバインドマウントする
+  - 観測可能完了: `docker compose up -d ollama`でコンテナが起動し、`docker compose exec ollama curl -s localhost:11434`がOllamaの応答を返す。また`docker compose exec ollama ls /lmstudio-models`でLM Studio側のGGUFファイル一覧が参照でき、同コンテナ内からの書き込み（例: `touch /lmstudio-models/test`）が拒否される
+  - _Requirements: 2.2, 4.3, 6.1, 6.2, 6.3_
 
 - [ ] 2.2 Open WebUIサービス定義の追加
   - `docker-compose.yml`に`ghcr.io/open-webui/open-webui:main`イメージのサービスを追加し、`agentplatform-net`に接続する
@@ -47,16 +48,23 @@
   - _Requirements: 1.3, 5.2_
   - _Depends: 2.1_
 
+- [ ] 2.5 LM Studioモデル共有手順ドキュメントの作成
+  - `docker/model-sharing.md`に、`LMSTUDIO_MODELS_PATH`の設定方法、`/lmstudio-models`配下のGGUFファイルを指すModelfileの作成例、`ollama create`によるモデル取り込み手順を記載する
+  - ディスク容量の二重消費（GGUFがOllama管理データ側にコピーされる）、LM Studio側のモデル更新時に`ollama create`を再実行する必要があること、WSL2経由での読み込みは初回ロードのみ影響することを注意事項として記載する
+  - 観測可能完了: `docker/model-sharing.md`が作成され、Modelfile作成例・`ollama create`コマンド例・容量/更新追従に関する注意事項が記載されている
+  - _Requirements: 6.4_
+  - _Depends: 2.1_
+
 - [ ] 3. Integration & Validation: 起動確認とPhase1完了基準の検証
 - [ ] 3.1 スモークテスト手順書の作成
-  - `tests/smoke/infrastructure_smoke.md`に、`docker compose up`実行手順、Open WebUIチャット確認手順、Ollamaコンテナ停止時のOpen WebUI側エラー表示確認手順、SearXNGの`/search?format=json`応答確認手順を記載する
-  - 観測可能完了: `tests/smoke/infrastructure_smoke.md`が作成され、上記4つの確認手順がすべて記載されている
-  - _Requirements: 2.3_
-  - _Depends: 2.2, 2.3_
+  - `tests/smoke/infrastructure_smoke.md`に、`docker compose up`実行手順、Open WebUIチャット確認手順、Ollamaコンテナ停止時のOpen WebUI側エラー表示確認手順、SearXNGの`/search?format=json`応答確認手順、LM Studioモデルディレクトリの読み取り専用マウント確認手順（`docker/model-sharing.md`を参照したModelfile取り込みの動作確認を含む）を記載する
+  - 観測可能完了: `tests/smoke/infrastructure_smoke.md`が作成され、上記5つの確認手順がすべて記載されている
+  - _Requirements: 2.3, 6.4_
+  - _Depends: 2.2, 2.3, 2.5_
 
 - [ ] 3.2 統合起動確認とPhase1完了基準の検証
   - `docker/.env`を`docker/.env.example`から作成した状態で`docker compose up`（必要に応じて`docker-compose.override.yml`含む）を実行し、Open WebUI・Ollama・SearXNGの3コンテナが`agentplatform-net`上で起動し、コンテナ名で相互に名前解決できることを確認する
-  - `tests/smoke/infrastructure_smoke.md`の手順に従い、Open WebUIでのチャット応答、Ollama停止時のエラー表示、SearXNGの`/search?format=json`応答を確認する
+  - `tests/smoke/infrastructure_smoke.md`の手順に従い、Open WebUIでのチャット応答、Ollama停止時のエラー表示、SearXNGの`/search?format=json`応答、Ollamaコンテナからの`/lmstudio-models`読み取り専用マウントを確認する
   - 観測可能完了: Open WebUIからのチャット応答とSearXNGの`/search?format=json`によるJSON応答が得られ、Phase1完了基準（Open WebUIからチャット可能、SearXNGのJSON API応答）を満たすことが確認できる
-  - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 3.2, 4.3, 5.1, 5.3_
-  - _Depends: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1_
+  - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 3.2, 4.3, 5.1, 5.3, 6.1, 6.2, 6.3_
+  - _Depends: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1_

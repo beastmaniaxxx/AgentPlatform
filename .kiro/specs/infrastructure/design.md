@@ -14,12 +14,14 @@
 - SearXNGの `/search?format=json` がJSON形式で応答する
 - APIキー等の機密情報を `.env`（Git管理外）に分離し、`.env.example` をテンプレートとして提供する
 - 後続Specがサービス・ボリュームを追記できる構成にする
+- LM Studioが管理するGGUFモデル資産をOllamaサービスから読み取り専用で参照できる構成にする
 
 ### Non-Goals
 - Dify、ComfyUI、imgpush等、後続フェーズで追加されるサービスの定義（各Specで対応）
 - Ollamaへのモデルのダウンロード・選定・チューニング（運用時に手動実施）
 - バックアップ・更新スクリプト（`scripts/`配下、将来検討）
 - LLM要約付きのWeb検索機能（`web-search` Specで対応）。本Specが提供するのはSearXNGのJSON API疎通のみ
+- 個々のモデルのModelfile作成・`ollama create`の実行・チャットテンプレートの設定（モデルごとの運用作業）
 
 ## Boundary Commitments
 
@@ -30,6 +32,7 @@
 - SearXNGの `settings.yml`（JSON出力有効化、`server.limiter` 設定を含む）
 - `docker/.env.example` の作成、および `.env` をGit管理対象から除外する `.gitignore` 設定
 - Phase1完了基準の疎通確認手順（Open WebUIチャット、SearXNG `/search?format=json`）とそれを検証するスモークテスト
+- LM Studioのモデルディレクトリ（ホスト側パスは `.env` で指定）をOllamaサービスに読み取り専用でマウントする構成、およびOllama管理データ（manifests/blobs）を独立ボリュームに保持する構成
 
 ### Out of Boundary
 - Dify・ComfyUI・imgpush等のサービス定義（`dify-integration` 等の後続Specが追加）
@@ -37,10 +40,12 @@
 - `pipelines/`・`workflows/`配下のアプリケーションロジック
 - LLM要約付きWeb検索ワークフロー（`web-search` Spec）
 - `scripts/` 配下の運用スクリプト（バックアップ・更新等）
+- 個々のモデルのModelfile作成・`ollama create`実行・チャットテンプレートの設定（手順をドキュメント化するが実行は運用作業）
 
 ### Allowed Dependencies
 - 外部依存: Open WebUI公式イメージ（`ghcr.io/open-webui/open-webui`）、Ollama公式イメージ（`ollama/ollama`）、SearXNG公式イメージ（`searxng/searxng`）
 - ランタイム前提: Docker Compose（Windows 11 + WSL2）、任意でNVIDIA Container Toolkit（GPU利用時）
+- ホスト依存: LM Studioのモデルディレクトリ（ホスト側パス、利用者の環境に依存し`.env`で指定）。本Specはこのディレクトリを読み取り専用で参照するのみで、ディレクトリ構造やLM Studio自体の管理には関与しない
 - 本Specより前段の依存スペックは存在しない（roadmap上の最初のSpec）
 
 ### Revalidation Triggers
@@ -48,6 +53,7 @@
 - `docker-compose.yml` のトップレベル構造（サービス追記パターン、ボリューム命名規則）の変更
 - SearXNGの `/search?format=json` のレスポンス形式・エンドポイントパスの変更 — `web-search` Specが直接依存する
 - Open WebUI ↔ Ollama間の接続方式（環境変数名・URL形式）の変更
+- LM Studioモデルディレクトリのマウントパス・マウント先（`/lmstudio-models`）の変更 — モデル取り込み手順（`ollama create`のFROMパス）に影響する
 
 ## Architecture
 
@@ -68,6 +74,7 @@ graph TB
         OllamaVolume[(ollama data volume)]
     end
 
+    LMStudioModels[(LM Studio models directory read only)]
     ExternalSearch[Search providers]
 
     Browser -->|HTTP chat UI| OpenWebUI
@@ -75,6 +82,7 @@ graph TB
     OpenWebUI -->|OLLAMA_BASE_URL| Ollama
     OpenWebUI --- OpenWebUIVolume
     Ollama --- OllamaVolume
+    Ollama -->|read only bind mount| LMStudioModels
     SearXNG -->|outbound search queries| ExternalSearch
 ```
 
@@ -90,7 +98,7 @@ graph TB
 | Layer | Choice / Version | Role in Feature | Notes |
 |-------|------------------|-----------------|-------|
 | フロントエンド | Open WebUI（`ghcr.io/open-webui/open-webui:main`） | チャットUI、Ollama接続先選択 | `OLLAMA_BASE_URL`でOllamaコンテナに接続 |
-| LLMランタイム | Ollama（`ollama/ollama:latest`） | OpenAI互換APIによるローカルLLM推論 | `OLLAMA_HOST=0.0.0.0`で他コンテナからの接続を許可 |
+| LLMランタイム | Ollama（`ollama/ollama:latest`） | OpenAI互換APIによるローカルLLM推論、LM Studioモデル資産の参照 | `OLLAMA_HOST=0.0.0.0`で他コンテナからの接続を許可。LM Studioモデルディレクトリを`/lmstudio-models`に読み取り専用マウント |
 | メタ検索 | SearXNG（`searxng/searxng:latest`） | `/search?format=json` によるJSON検索API | `settings.yml`で`search.formats`に`json`追加、`server.limiter: false` |
 | Infrastructure / Runtime | Docker Compose（`docker-compose.yml` + `docker-compose.override.yml`） | サービス・ネットワーク・ボリュームのオーケストレーション | Windows 11 + WSL2 + 任意でNVIDIA Container Toolkit |
 
@@ -99,11 +107,12 @@ graph TB
 ### Directory Structure
 ```
 docker/
-├── docker-compose.yml          # 全サービス統合定義（Open WebUI / Ollama / SearXNG、共有ネットワーク・ボリューム）
+├── docker-compose.yml          # 全サービス統合定義（Open WebUI / Ollama / SearXNG、共有ネットワーク・ボリューム、LM Studioモデルディレクトリのro マウント）
 ├── docker-compose.override.yml # 開発用オーバーライド（GPU割り当て等、Git管理外）
 ├── docker-compose.override.yml.example # override作成用テンプレート（Git管理対象）
-├── .env.example                 # 環境変数テンプレート（ポート、SearXNGベースURL等）
+├── .env.example                 # 環境変数テンプレート（ポート、SearXNGベースURL、LMSTUDIO_MODELS_PATH等）
 ├── networks.md                  # 共有ネットワーク（agentplatform-net）の命名・拡張方針の説明
+├── model-sharing.md              # LM StudioモデルディレクトリのマウントとModelfile経由の取り込み手順
 └── searxng/
     └── settings.yml              # JSON出力有効化済みのSearXNG設定（Git管理対象）
 
@@ -162,6 +171,10 @@ sequenceDiagram
 | 5.1 | Windows11+WSL2上での起動 | Docker Compose Stack | `docker-compose.yml` | - |
 | 5.2 | GPU利用可能時のOllama GPU使用 | Ollama Service（override） | `deploy.resources.reservations.devices` | - |
 | 5.3 | SearXNG以外の外部接続不要 | Docker Compose Stack, SearXNG Service | ネットワーク・ポート公開設定 | - |
+| 6.1 | LM Studioモデルディレクトリの読み取り専用マウント | Ollama Service | `/lmstudio-models:ro` バインドマウント | - |
+| 6.2 | Ollama管理データを独立ボリュームに保持 | Ollama Service | `ollama-data`ボリューム | - |
+| 6.3 | マウントパスの環境変数化 | Environment Config, Ollama Service | `LMSTUDIO_MODELS_PATH` | - |
+| 6.4 | Modelfile経由のモデル作成 | Ollama Service, `docker/model-sharing.md` | `ollama create` 手順 | - |
 
 ## Components and Interfaces
 
@@ -169,9 +182,9 @@ sequenceDiagram
 |-----------|--------------|--------|--------------|--------------------------|-----------|
 | Docker Compose Stack | Infrastructure | サービス・ネットワーク・ボリュームの統合定義 | 1.1, 1.2, 1.3, 1.4, 4.3, 5.1, 5.3 | Open WebUI Image (P0), Ollama Image (P0), SearXNG Image (P0) | Batch |
 | Open WebUI Service | Frontend | チャットUIの提供とOllama接続 | 2.1, 2.2, 2.3 | Ollama Service (P0) | API |
-| Ollama Service | LLM Runtime | OpenAI互換APIによるローカル推論、GPU利用 | 2.2, 5.2 | NVIDIA Container Toolkit (P1, optional) | API |
+| Ollama Service | LLM Runtime | OpenAI互換APIによるローカル推論、GPU利用、LM Studioモデル資産の参照 | 2.2, 5.2, 6.1, 6.2, 6.3, 6.4 | NVIDIA Container Toolkit (P1, optional), LM Studio model directory (P1) | API |
 | SearXNG Service | Meta Search | JSON検索APIの提供 | 3.1, 3.2, 5.3 | 外部検索プロバイダ (P1) | API |
-| Environment Config | Config | `.env.example`提供と`.env`のGit除外 | 4.1, 4.2 | - | Config |
+| Environment Config | Config | `.env.example`提供と`.env`のGit除外、ホスト依存パスの変数化 | 4.1, 4.2, 6.3 | - | Config |
 
 ### Infrastructure
 
@@ -240,16 +253,19 @@ sequenceDiagram
 
 | Field | Detail |
 |-------|--------|
-| Intent | OpenAI互換APIでローカルLLM推論を提供し、利用可能な場合はGPUを使用する |
-| Requirements | 2.2, 5.2 |
+| Intent | OpenAI互換APIでローカルLLM推論を提供し、利用可能な場合はGPUを使用する。LM Studioが管理するGGUFモデル資産を読み取り専用で参照し、Modelfile経由のモデル作成を可能にする |
+| Requirements | 2.2, 5.2, 6.1, 6.2, 6.3, 6.4 |
 
 **Responsibilities & Constraints**
 - `ollama/ollama:latest` イメージを使用し、`OLLAMA_HOST=0.0.0.0` を設定して `agentplatform-net` 上の他コンテナからの接続を許可する
-- モデルデータは名前付きボリュームに永続化する
+- Ollamaの管理データ（manifests・blobs等）は名前付きボリューム（`ollama-data`）に永続化する。このボリュームはLM Studioのモデルディレクトリとは独立している
 - GPU利用は `docker-compose.override.yml` 内の `deploy.resources.reservations.devices`（`driver: nvidia`, `capabilities: [gpu]`）で構成し、NVIDIA Container Toolkitが利用可能な環境でのみ有効化する
+- LM Studioのモデルディレクトリ（ホスト側パスは`.env`の`LMSTUDIO_MODELS_PATH`で指定）をコンテナ内`/lmstudio-models`に**読み取り専用（`:ro`）**でバインドマウントする
+- マウントしたGGUFファイルからのモデル作成（`ollama create -f Modelfile`）はOllama標準機能であり、本Specはマウント構成と取り込み手順のドキュメント化（`docker/model-sharing.md`）のみを担当する
 
 **Dependencies**
 - External: NVIDIA Container Toolkit（P1, GPU利用時のみ必須。未導入の場合はoverrideからGPU設定を除去してCPUモードで動作）
+- External: LM Studioモデルディレクトリ（P1, ホスト側パス。読み取り専用マウントのため本Specからの書き込みは発生しない）
 
 **Contracts**: API [x]
 
@@ -259,9 +275,9 @@ sequenceDiagram
 | (内部) | Ollama OpenAI互換API（コンテナ名:11434） | Open WebUIからのチャット/モデル一覧要求 | モデル応答／モデル一覧 | Ollama未起動時は接続不可（Open WebUI側で2.3として表示） |
 
 **Implementation Notes**
-- Integration: Open WebUI Serviceの`OLLAMA_BASE_URL`から参照される
-- Validation: GPU搭載環境では `docker compose up` 後にGPUがOllamaコンテナにアタッチされていることを確認する（例: コンテナ内での認識確認）。GPU非搭載環境ではoverrideのGPU設定を除去した状態で起動確認する
-- Risks: GPU予約付き設定をGPU非搭載環境に適用するとコンテナ起動が失敗する（research.mdのRisks参照）
+- Integration: Open WebUI Serviceの`OLLAMA_BASE_URL`から参照される。LM Studioモデルディレクトリのマウントは`docker/.env`の`LMSTUDIO_MODELS_PATH`からパスを取得する
+- Validation: GPU搭載環境では `docker compose up` 後にGPUがOllamaコンテナにアタッチされていることを確認する（例: コンテナ内での認識確認）。GPU非搭載環境ではoverrideのGPU設定を除去した状態で起動確認する。LM Studioマウントはコンテナ内で`/lmstudio-models`配下のGGUFファイルが読み取れること、および書き込みが拒否されることを確認する
+- Risks: GPU予約付き設定をGPU非搭載環境に適用するとコンテナ起動が失敗する（research.mdのRisks参照）。LM Studioモデルからの`ollama create`はGGUFをOllama管理データ側にコピーするため、ディスク容量を二重消費する（research.md Risks参照）
 
 ### Meta Search
 
@@ -299,10 +315,11 @@ sequenceDiagram
 | Field | Detail |
 |-------|--------|
 | Intent | 必要な環境変数のテンプレートを提供し、機密情報を含む実値ファイルをGit管理から除外する |
-| Requirements | 4.1, 4.2 |
+| Requirements | 4.1, 4.2, 6.3 |
 
 **Responsibilities & Constraints**
-- `docker/.env.example` に、各サービスが必要とする環境変数（ポート番号、`SEARXNG_BASE_URL`、`OLLAMA_BASE_URL`等）をコメント付きで列挙する
+- `docker/.env.example` に、各サービスが必要とする環境変数（ポート番号、`SEARXNG_BASE_URL`、`OLLAMA_BASE_URL`、`LMSTUDIO_MODELS_PATH`等）をコメント付きで列挙する
+- `LMSTUDIO_MODELS_PATH`はLM Studioのモデルディレクトリのホスト側パス（例: `/mnt/d/LMStudio/models`）を指し、利用者の環境（ドライブ構成）に応じて`.env`で設定する
 - `.gitignore` に `docker/.env` と `docker/docker-compose.override.yml` を追加し、実値ファイルがコミットされないようにする
 - 本Spec時点でAPIキーを要する外部サービス（SerpAPI等）は未導入のため、`.env.example` には基盤稼働に必要な変数のみを含める
 
@@ -330,6 +347,7 @@ sequenceDiagram
 - **起動時エラー**: GPU予約付き設定でNVIDIA Container Toolkit未導入 → `docker-compose.override.yml`からGPU設定を除去してCPUモードで起動（research.md Risks）
 - **サービス間接続エラー**: Open WebUIからOllamaへの接続失敗 → Open WebUI標準のエラー表示（要件2.3、Open WebUI側の既定動作に委ねる）
 - **設定不備エラー**: SearXNGの`settings.yml`で`search.formats`に`json`が無い、または`server.limiter: true`の場合 → `/search?format=json`が403またはHTML応答を返す。本Specの設定（research.md）により回避する
+- **マウント不備エラー**: `LMSTUDIO_MODELS_PATH`が未設定、またはホスト側ディレクトリが存在しない場合 → Ollamaコンテナの`/lmstudio-models`が空または起動失敗となる。`docker/model-sharing.md`にパス設定の前提条件を記載する
 
 ### Monitoring
 個人開発・単一ホスト運用のため、本Spec範囲では`docker compose logs`によるログ確認を基本とする。追加の監視基盤は対象外（roadmap.md Out of scope）。
@@ -341,11 +359,13 @@ sequenceDiagram
 2. Open WebUIコンテナから環境変数`OLLAMA_BASE_URL`で指定したOllamaコンテナへの接続が確立できること（要件2.2）
 3. `docker-compose.override.yml`適用時に本体設定が正しく上書きされること（GPU設定の有無で起動結果が変わることを確認）（要件1.3, 5.2）
 4. `docker/.env`未作成時と作成済み時で、各コンテナが`.env`の値を環境変数として受け取ること（要件4.3）
+5. `LMSTUDIO_MODELS_PATH`に指定したホストディレクトリがOllamaコンテナの`/lmstudio-models`に読み取り専用でマウントされ、ファイル一覧が参照できる一方で書き込みが拒否されること（要件6.1, 6.2, 6.3）
 
 ### E2E / Smoke Tests
 1. ブラウザでOpen WebUIにアクセスし、チャット画面が表示され、Ollama接続済みモデルにメッセージを送信して応答が表示されること（要件2.1, 2.2）
 2. Ollamaコンテナを停止した状態でOpen WebUIからチャットを試行し、エラー状態が表示されること（要件2.3）
 3. `curl "http://<host>:<searxng_port>/search?format=json&q=test"` がJSON形式のレスポンスを返すこと（要件3.1, 3.2）
+4. `docker/model-sharing.md`の手順に従い、`/lmstudio-models`配下のGGUFファイルを指すModelfileから`ollama create`でモデルを作成し、`ollama list`に作成したモデルが表示されること（要件6.4）
 
 これらは `tests/smoke/infrastructure_smoke.md` に手順として記録し、Phase1完了基準（Open WebUIチャット可能、SearXNG JSON応答）の確認に用いる。
 
@@ -354,3 +374,4 @@ sequenceDiagram
 - `.env`に機密情報（将来的なAPIキー等）を記載し、Gitにコミットしない（要件4.2）。`.kiro/steering/tech.md`のセキュリティ方針に準拠
 - SearXNGの`server.limiter: false`設定はAPIアクセス制御を緩和するため、ローカル非公開ネットワークでの運用を前提とし、`docker/networks.md`に運用上の注意（外部公開しないこと）を記載する
 - 本Spec時点では外部送信を伴う処理（逆画像検索等）は存在せず、要件5.3の「SearXNGの検索プロバイダ以外への外部接続不要」を構成上満たす
+- LM Studioのモデルディレクトリは`:ro`（読み取り専用）でマウントし、Ollamaコンテナからの書き込みによるLM Studio側ファイルの破損・改変を防止する（要件6.1）
