@@ -74,7 +74,7 @@
   - _Depends: 4.1_
 
 - [ ] 5. Core: Echo検証用ワークフローの作成
-- [ ] 5.1 (P) echo_workflow.ymlの作成
+- [x] 5.1 (P) echo_workflow.ymlの作成
   - `workflows/echo_workflow.yml`に、受信した`query`テキストとファイル添付の有無をそのまま応答メッセージとして返す最小構成のDify DSL（Start/End構成のChatflow）を作成する
   - 観測可能完了: `workflows/echo_workflow.yml`がDify DSLのスキーマ（`version`・`kind`・`graph`の`start`/`end`ノード等）に準拠したYAMLとして記述されている
   - _Requirements: 6.1_
