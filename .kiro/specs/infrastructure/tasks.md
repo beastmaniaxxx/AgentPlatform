@@ -7,7 +7,7 @@
   - 観測可能完了: `docker compose -f docker/docker-compose.yml config`がエラーなく実行でき、出力に`agentplatform-net`ネットワークと各ボリュームが含まれる
   - _Requirements: 1.2, 1.4_
 
-- [ ] 1.2 環境変数テンプレートとGit除外設定の作成
+- [x] 1.2 環境変数テンプレートとGit除外設定の作成
   - `docker/.env.example`に各サービスが必要とするポート番号・`SEARXNG_BASE_URL`・`OLLAMA_BASE_URL`・`LMSTUDIO_MODELS_PATH`（LM Studioモデルディレクトリのホスト側パス）等をコメント付きで列挙する
   - リポジトリの`.gitignore`に`docker/.env`と`docker/docker-compose.override.yml`を追加する
   - 観測可能完了: `docker/.env.example`をコピーして`docker/.env`を作成しても`git status`でUntracked/Trackedに表示されない
