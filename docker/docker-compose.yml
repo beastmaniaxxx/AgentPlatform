@@ -325,3 +325,12 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:${DIFY_WEB_PORT}:3000"
+
+  pipelines:
+    image: ghcr.io/open-webui/pipelines:main
+    networks:
+      - agentplatform-net
+    ports:
+      - "127.0.0.1:${PIPELINES_PORT}:9099"
+    volumes:
+      - ../pipelines:/app/pipelines
