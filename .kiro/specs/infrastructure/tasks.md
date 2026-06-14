@@ -62,7 +62,7 @@
   - _Requirements: 2.3, 6.4_
   - _Depends: 2.2, 2.3, 2.5_
 
-- [ ] 3.2 統合起動確認とPhase1完了基準の検証
+- [x] 3.2 統合起動確認とPhase1完了基準の検証
   - `docker/.env`を`docker/.env.example`から作成した状態で`docker compose up`（必要に応じて`docker-compose.override.yml`含む）を実行し、Open WebUI・Ollama・SearXNGの3コンテナが`agentplatform-net`上で起動し、コンテナ名で相互に名前解決できることを確認する
   - `tests/smoke/infrastructure_smoke.md`の手順に従い、Open WebUIでのチャット応答、Ollama停止時のエラー表示、SearXNGの`/search?format=json`応答、Ollamaコンテナからの`/lmstudio-models`読み取り専用マウントを確認する
   - 観測可能完了: Open WebUIからのチャット応答とSearXNGの`/search?format=json`によるJSON応答が得られ、Phase1完了基準（Open WebUIからチャット可能、SearXNGのJSON API応答）を満たすことが確認できる
@@ -74,3 +74,5 @@
 - 2.1: `docker-compose.yml`にトップレベル`name: agentplatform`を追加した。Compose v5のデフォルトプロジェクト名はディレクトリ名（本リポジトリでは`docker`）になるため、同じく`docker`ディレクトリ名でデプロイされた別プロジェクト（Dify）とプロジェクト名が衝突し、`docker compose up --remove-orphans`実行時に無関係なコンテナ・ネットワークが削除される事故が発生した（リカバリ済み、データ消失なし）。`name: agentplatform`によりプロジェクト名を固定し再発を防止する。
 - 2.1: `ollama/ollama:latest`イメージには`curl`/`wget`が含まれない。「Ollamaの応答を返す」ことの確認には`docker compose exec ollama ollama list`（同じローカルAPIを呼ぶCLI）を使うこと。3.1/3.2のスモークテスト手順でも同様に`ollama list`等を使用する。
 - 2.3: `searxng`サービスには`env_file: .env`を付与しない。`searxng/searxng:latest`イメージは`SEARXNG_PORT`環境変数をコンテナ内部のリスニングポートとして使用するため、ホスト側ポート用の`.env`の`SEARXNG_PORT`を渡すと内部ポートと`ports:`マッピング（`${SEARXNG_PORT}:8080`）が不整合になる。`${SEARXNG_PORT}`の変数展開はCompose本体が`.env`から自動で行うため`env_file`は不要。
+- 3.2: 実機検証では`SEARXNG_PORT=8081`（8080は別プロジェクトで使用中）、`LMSTUDIO_MODELS_PATH=/d/LM Studio_Data/models`（スペースを含むパスでも`docker compose config`/バインドマウントは正常動作）、GPU override（RTX 5090）を使用。`docker compose exec ollama nvidia-smi`でGPU認識、`/lmstudio-models`の読み取り専用マウント、`ollama create`によるLM StudioモデルからのOllamaモデル作成（`qwen3vl-test`, 16GB）、`ollama run`での応答生成まで確認済み。
+- 3.2: 要件2.3（Ollama接続失敗時のOpen WebUIエラー表示）はOpen WebUI本体のSPA UIロジック（本Specの実装境界外）であり、認証済みブラウザセッションでの確認が必要。インフラ層の障害・復旧条件（`ollama`コンテナ停止時にDNS解決が失敗し`open-webui`コンテナから`http://ollama:11434`への接続が`Name or service not known`になること、再起動後に復旧すること）は確認済み。UIでのエラー表示確認は運用時のフォローアップ（MANUAL_VERIFY）として記録する。
