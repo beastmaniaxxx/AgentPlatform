@@ -65,7 +65,7 @@
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1_
   - _Depends: 3.1_
 
-- [ ] 4.2 画像メッセージ中継の実装
+- [x] 4.2 画像メッセージ中継の実装
   - `pipelines/dify_bridge.py`の`pipe()`を拡張し、`messages[-1]["content"]`がリストで`image_url`（`data:image/...;base64,...`）を含む場合に、base64データを抽出して`POST /v1/files/upload`を呼び出し、取得した`upload_file_id`を`files`配列に含めて`POST /v1/chat-messages`を実行する
   - 画像を含まないテキストのみのメッセージでは`/v1/files/upload`を呼び出さない（4.1の挙動を維持）
   - `/v1/files/upload`または画像付き`chat-messages`が失敗した場合、`chat-messages`を実行せず（または結果を返さず）ユーザー向けエラーメッセージ文字列を返す
