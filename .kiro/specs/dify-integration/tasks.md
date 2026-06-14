@@ -56,7 +56,7 @@
   - 観測可能完了: `docker compose up -d pipelines`後、`curl http://localhost:${PIPELINES_PORT}/models`がHTTP 200とJSON配列（空配列でよい）を返す
   - _Requirements: 6.2_
 
-- [ ] 4. Core: DifyBridge Pipelineの実装
+- [x] 4. Core: DifyBridge Pipelineの実装
 - [x] 4.1 テキストメッセージ中継とエラーハンドリングの実装
   - `pipelines/dify_bridge.py`を作成し、`Valves`（`DIFY_API_BASE_URL`・`DIFY_APP_API_KEY`・`REQUEST_TIMEOUT_SECONDS`を環境変数から読み込む）と`Pipe`クラスを実装する
   - `pipe()`がテキストメッセージを`POST /v1/chat-messages`（`response_mode: blocking`、`user`にOpen WebUIのユーザー識別子を設定）でDifyへ転送し、`answer`を戻り値として返す
