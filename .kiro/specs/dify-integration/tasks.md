@@ -7,7 +7,7 @@
   - 観測可能完了: `docker/.env.example`をコピーして作成した`docker/.env`に追加した全変数が存在し、`git status`で`docker/.env`が追跡対象外であることが確認できる
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 1.2 Dify Sandbox用ssrf_proxy設定のvendorとバージョン方針メモの作成
+- [x] 1.2 Dify Sandbox用ssrf_proxy設定のvendorとバージョン方針メモの作成
   - `docker/dify/ssrf_proxy/squid.conf.template`と`docker/dify/ssrf_proxy/docker-entrypoint.sh`を、Dify公式リポジトリの`docker/ssrf_proxy/`配下から実装時点の安定タグに対応するバージョンでvendorする
   - `docker/dify/README.md`に、vendor元のリポジトリURL・取得時のDifyバージョン（v1.11以降の安定タグ）・以降のDify関連サービスで使用するイメージタグの方針を記録する
   - 観測可能完了: `docker/dify/ssrf_proxy/squid.conf.template`・`docker/dify/ssrf_proxy/docker-entrypoint.sh`・`docker/dify/README.md`が存在し、READMEに採用したDifyバージョンタグが明記されている
