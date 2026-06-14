@@ -14,7 +14,7 @@
   - _Requirements: 1.1_
 
 - [ ] 2. Core: Difyサービス群のdocker-compose追加
-- [ ] 2.1 Difyデータストア（PostgreSQL+pgvector, Redis）サービスの追加
+- [x] 2.1 Difyデータストア（PostgreSQL+pgvector, Redis）サービスの追加
   - `docker-compose.yml`に`dify-db`（`pgvector/pgvector`イメージ、`docker/.env`の`DIFY_DB_*`を使用）と`dify-redis`サービスを追加し、両方を`agentplatform-net`に接続する
   - `dify-db`・`dify-redis`それぞれに名前付きボリュームを定義し、トップレベル`volumes:`に追加する
   - 観測可能完了: `docker compose up -d dify-db dify-redis`でコンテナが起動し、`docker compose exec dify-db pg_isready`が成功を返す。`docker compose restart dify-db`後もデータが保持される（ボリュームがマウントされている）
@@ -107,3 +107,6 @@
   - 観測可能完了: Open WebUIのチャット画面で、テキスト応答・画像受信確認応答・（`dify-api`停止時の）接続エラーメッセージの3パターンがそれぞれ表示される
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 5.1, 5.2, 5.3, 6.2, 6.3, 6.4_
   - _Depends: 6.3, 4.1, 4.2_
+
+## Implementation Notes
+- 2.1: `docker compose down -v`は本プロジェクトの全ボリューム（`agentplatform_open-webui-data`/`agentplatform_ollama-data`/`agentplatform_searxng-data`を含む既存データ）を削除する。検証作業で特定サービスのみ起動・確認した後の後片付けは、`docker compose down`（`-v`なし）または`docker volume rm <個別のボリューム名>`を使用し、`-v`付きの`down`はプロジェクト全体のボリュームを削除する破壊的操作であるため使用しないこと。本タスクの検証作業中に誤って`down -v`を実行し、`infrastructure` Spec検証時に作成したOllamaモデル（`qwen3vl-test`等）・Open WebUIデータ・SearXNGデータが失われた（リカバリ不可、再構築で対応）。

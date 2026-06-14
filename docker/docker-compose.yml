@@ -9,6 +9,8 @@ volumes:
   open-webui-data:
   ollama-data:
   searxng-data:
+  dify-db-data:
+  dify-redis-data:
 
 services:
   ollama:
@@ -48,3 +50,37 @@ services:
     volumes:
       - searxng-data:/etc/searxng
       - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+
+  dify-db:
+    image: pgvector/pgvector:pg16
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DIFY_DB_USERNAME}
+      - POSTGRES_PASSWORD=${DIFY_DB_PASSWORD}
+      - POSTGRES_DB=${DIFY_DB_DATABASE}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - dify-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DIFY_DB_USERNAME}", "-d", "${DIFY_DB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  dify-redis:
+    image: redis:6-alpine
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    command: redis-server --requirepass ${DIFY_REDIS_PASSWORD}
+    volumes:
+      - dify-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${DIFY_REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
