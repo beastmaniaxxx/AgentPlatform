@@ -41,7 +41,7 @@
   - 観測可能完了: `curl "http://localhost:<port>/search?format=json&q=test"`がJSON形式のレスポンスを返す
   - _Requirements: 3.1, 3.2, 4.3, 5.3_
 
-- [ ] 2.4 docker-compose.override.ymlによるGPU割り当て設定の追加
+- [x] 2.4 docker-compose.override.ymlによるGPU割り当て設定の追加
   - `docker/docker-compose.override.yml.example`（Git管理対象）を作成し、Ollamaサービスへの`deploy.resources.reservations.devices`によるNVIDIA GPU予約の設定例を記述する
   - GPU非搭載環境では本ファイルをコピーせず`docker-compose.yml`単体で起動できることを`docker/networks.md`または同ファイル内コメントに明記する
   - 観測可能完了: `docker/docker-compose.override.yml.example`を`docker-compose.override.yml`としてコピーし、`docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml config`の出力にOllamaサービスのGPU予約設定が反映される

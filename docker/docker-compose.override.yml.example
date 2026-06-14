@@ -1,0 +1,21 @@
+# docker-compose.override.yml テンプレート
+#
+# 使い方:
+#   1. このファイルを `docker-compose.override.yml` としてコピーする
+#      （`docker-compose.override.yml` はGit管理対象外です。.gitignore参照）
+#   2. NVIDIA GPU（CUDA対応）が利用可能な環境では、そのままOllamaサービスに
+#      GPUを割り当てて起動できる
+#
+# GPU非搭載環境の場合:
+#   - このファイルをコピーしない（`docker-compose.override.yml` を作成しない）
+#   - `docker compose up` を実行すれば、`docker-compose.yml` 単体（CPUモード）で
+#     Ollamaが起動する
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
