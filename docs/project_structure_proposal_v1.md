@@ -200,9 +200,9 @@ cc-sddの規約に従い、各Specは以下の構造を持ちます。
 ```json
 {
   "name": "web-search",
-  "phase": 1,
+  "phase": 3,
   "status": "draft",
-  "dependencies": ["infrastructure"],
+  "dependencies": ["infrastructure", "dify-integration"],
   "created_at": "2026-05-30",
   "owner": "personal"
 }
