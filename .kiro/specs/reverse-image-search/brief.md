@@ -13,7 +13,7 @@
 - Open WebUIにアップロードされた画像（base64）をPipelineスクリプトが受け取り、imgpushへPOSTして公開URLを取得する
 - DifyのHTTPノードから当該URLをSerpAPI（`engine=google_reverse_image` または `engine=google_lens`）へ送信する
 - 類似画像URLリスト・出典サイトをLLMが要約し、サムネイル＋出典サイト一覧として返却する
-- 画像URLが第三者サーバー（SerpAPI）へ送信される旨をUI上で通知する
+- 画像がimgpush経由で一時的に外部から参照可能なURLとして公開され、そのURLが第三者サーバー（SerpAPI）へ送信される旨をUI上で通知する
 
 ## Approach
 

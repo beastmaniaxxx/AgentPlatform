@@ -16,11 +16,13 @@
 
 ## 依存関係の方向
 
+この矢印は「層（レイヤー）としての依存」を表し、実行時のリクエストフロー（Open WebUI → Pipeline → Dify Workflow）とは別の観点である。
+
 ```
 docker ← pipelines ← workflows
 ```
 
-すべては `docker/` 上に成立する。逆方向の依存（dockerからpipelines/workflowsを参照する等）は禁止。
+`pipelines/` や `workflows/` は `docker/` が提供するサービス（コンテナ）の上に成立するが、`docker/` の定義は `pipelines/`・`workflows/` の内容を参照しない（逆方向の依存は禁止）。一方、実行時の処理はOpen WebUI（Pipeline）からDifyワークフローを呼び出す方向（`pipelines → workflows`）に流れる。
 
 ## 命名規則
 

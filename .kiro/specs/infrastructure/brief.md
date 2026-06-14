@@ -6,7 +6,7 @@
 
 ## Current State
 
-リポジトリには `docs/requirements_definition_v1.md`（要件定義）と `docs/project_structure_proposal_v1.md`（構成提案）のみが存在し、`docker/` 等の実装ディレクトリ・Compose定義は未作成。
+本PR時点では `.kiro/`（steering/specs）および `docs/`（要件定義・構成提案）の仕様ドキュメントのみが存在し、`docker/` 等の実装ディレクトリ・Compose定義は未作成。
 
 ## Desired Outcome
 
