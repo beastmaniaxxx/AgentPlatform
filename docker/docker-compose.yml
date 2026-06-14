@@ -1,5 +1,59 @@
 name: agentplatform
 
+# dify-api / dify-worker / dify-worker-beatで共有するDify環境変数。
+# いずれもlanggenius/dify-api:1.14.2イメージをMODE違いで起動し、同一の
+# DB/Redis/ベクトルストア/Sandbox/Plugin Daemon設定を必要とするため、
+# YAMLアンカーで重複を避ける。
+x-dify-app-env: &dify-app-env
+  SECRET_KEY: ${DIFY_SECRET_KEY}
+  MIGRATION_ENABLED: "true"
+  # --- データベース（dify-db） ---
+  DB_TYPE: postgresql
+  DB_USERNAME: ${DIFY_DB_USERNAME}
+  DB_PASSWORD: ${DIFY_DB_PASSWORD}
+  DB_HOST: dify-db
+  DB_PORT: "5432"
+  DB_DATABASE: ${DIFY_DB_DATABASE}
+  # --- Redis（dify-redis） ---
+  REDIS_HOST: dify-redis
+  REDIS_PORT: "6379"
+  REDIS_USERNAME: ""
+  REDIS_PASSWORD: ${DIFY_REDIS_PASSWORD}
+  REDIS_USE_SSL: "false"
+  REDIS_DB: "0"
+  CELERY_BROKER_URL: redis://:${DIFY_REDIS_PASSWORD}@dify-redis:6379/1
+  # --- ベクトルストア（dify-dbのpgvector拡張を共用） ---
+  VECTOR_STORE: pgvector
+  PGVECTOR_HOST: dify-db
+  PGVECTOR_PORT: "5432"
+  PGVECTOR_USER: ${DIFY_DB_USERNAME}
+  PGVECTOR_PASSWORD: ${DIFY_DB_PASSWORD}
+  PGVECTOR_DATABASE: ${DIFY_DB_DATABASE}
+  STORAGE_TYPE: opendal
+  OPENDAL_SCHEME: fs
+  OPENDAL_FS_ROOT: storage
+  # --- SSRF Proxy（dify-ssrf-proxy） ---
+  SSRF_PROXY_HTTP_URL: http://dify-ssrf-proxy:3128
+  SSRF_PROXY_HTTPS_URL: http://dify-ssrf-proxy:3128
+  # --- Code Execution（dify-sandbox） ---
+  CODE_EXECUTION_ENDPOINT: http://dify-sandbox:8194
+  CODE_EXECUTION_API_KEY: ${DIFY_SANDBOX_API_KEY}
+  # --- Plugin Daemon（dify-plugin-daemon） ---
+  PLUGIN_DAEMON_URL: http://dify-plugin-daemon:5002
+  PLUGIN_DAEMON_KEY: ${DIFY_PLUGIN_DAEMON_KEY}
+  INNER_API_KEY_FOR_PLUGIN: ${DIFY_PLUGIN_INNER_API_KEY}
+  PLUGIN_REMOTE_INSTALL_HOST: dify-plugin-daemon
+  PLUGIN_REMOTE_INSTALL_PORT: "5003"
+  PLUGIN_MAX_PACKAGE_SIZE: "52428800"
+  FORCE_VERIFYING_SIGNATURE: "true"
+  # --- 公開URL（個人ローカル利用のためnginxを介さずホストポートを直接指定） ---
+  CONSOLE_API_URL: http://localhost:${DIFY_API_PORT}
+  CONSOLE_WEB_URL: http://localhost:${DIFY_WEB_PORT}
+  SERVICE_API_URL: http://localhost:${DIFY_API_PORT}
+  APP_API_URL: http://localhost:${DIFY_API_PORT}
+  APP_WEB_URL: http://localhost:${DIFY_WEB_PORT}
+  FILES_URL: http://localhost:${DIFY_API_PORT}
+
 networks:
   agentplatform-net:
     name: agentplatform-net
@@ -14,6 +68,7 @@ volumes:
   dify-sandbox-dependencies:
   dify-sandbox-conf:
   dify-plugin-daemon-storage:
+  dify-app-storage:
 
 services:
   ollama:
@@ -177,8 +232,79 @@ services:
       - PLUGIN_INSTALLED_PATH=plugin
       - PLUGIN_PACKAGE_CACHE_PATH=plugin_packages
       - PLUGIN_MEDIA_CACHE_PATH=assets
-      # dify-apiの内部APIへの接続（dify-api追加はタスク2.4）
+      # dify-apiの内部APIへの接続
       - DIFY_INNER_API_URL=http://dify-api:5001
       - DIFY_INNER_API_KEY=${DIFY_PLUGIN_INNER_API_KEY}
     volumes:
       - dify-plugin-daemon-storage:/app/storage
+
+  dify-api:
+    image: langgenius/dify-api:1.14.2
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      <<: *dify-app-env
+      MODE: api
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+      dify-sandbox:
+        condition: service_healthy
+      dify-plugin-daemon:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${DIFY_API_PORT}:5001"
+    volumes:
+      - dify-app-storage:/app/api/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  dify-worker:
+    image: langgenius/dify-api:1.14.2
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      <<: *dify-app-env
+      MODE: worker
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+      dify-sandbox:
+        condition: service_healthy
+      dify-plugin-daemon:
+        condition: service_started
+    volumes:
+      - dify-app-storage:/app/api/storage
+
+  dify-worker-beat:
+    image: langgenius/dify-api:1.14.2
+    networks:
+      - agentplatform-net
+    env_file:
+      - .env
+    environment:
+      <<: *dify-app-env
+      MODE: beat
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+      dify-sandbox:
+        condition: service_healthy
+      dify-plugin-daemon:
+        condition: service_started
+    volumes:
+      - dify-app-storage:/app/api/storage

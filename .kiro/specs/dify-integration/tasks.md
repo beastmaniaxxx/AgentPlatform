@@ -34,7 +34,7 @@
   - _Requirements: 1.1, 1.2_
   - _Depends: 2.1_
 
-- [ ] 2.4 Dify API/Worker/Worker Beatサービスの追加
+- [x] 2.4 Dify API/Worker/Worker Beatサービスの追加
   - `docker-compose.yml`に`dify-api`（mode=api）・`dify-worker`（mode=worker）・`dify-worker-beat`（mode=beat）サービスを追加し、`docker/.env`の`DIFY_SECRET_KEY`・`DIFY_DB_*`・`DIFY_REDIS_*`・`VECTOR_STORE=pgvector`設定・Plugin Daemon接続先を環境変数として設定する
   - 3サービスを`agentplatform-net`に接続し、`depends_on`で`dify-db`・`dify-redis`・`dify-sandbox`・`dify-plugin-daemon`の起動完了を待機する設定を行う
   - `dify-api`を`127.0.0.1:${DIFY_API_PORT}:5001`でホストに公開する
