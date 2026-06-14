@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Foundation: 環境変数テンプレートとDify Sandbox設定のvendor
+- [x] 1. Foundation: 環境変数テンプレートとDify Sandbox設定のvendor
 - [x] 1.1 docker/.env.exampleへのDify/Pipelines関連環境変数の追加
   - `docker/.env.example`に`DIFY_SECRET_KEY`・`DIFY_DB_USERNAME`/`DIFY_DB_PASSWORD`/`DIFY_DB_DATABASE`・`DIFY_REDIS_*`・`DIFY_WEB_PORT`・`DIFY_API_PORT`・`PIPELINES_PORT`・`DIFY_API_BASE_URL`（例: `http://dify-api:5001/v1`）・`DIFY_APP_API_KEY`（検証用ワークフローのAPIキー、初期値は空欄）をコメント付きで追加する
   - 既存の`.gitignore`に`docker/.env`が含まれていることを確認し、Dify関連の機密情報も同ファイル経由で管理されることをコメントで明記する
