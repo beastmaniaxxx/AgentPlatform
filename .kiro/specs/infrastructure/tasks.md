@@ -27,7 +27,7 @@
   - 観測可能完了: `docker compose up -d ollama`でコンテナが起動し、`docker compose exec ollama curl -s localhost:11434`がOllamaの応答を返す。また`docker compose exec ollama ls /lmstudio-models`でLM Studio側のGGUFファイル一覧が参照でき、同コンテナ内からの書き込み（例: `touch /lmstudio-models/test`）が拒否される
   - _Requirements: 2.2, 4.3, 6.1, 6.2, 6.3_
 
-- [ ] 2.2 Open WebUIサービス定義の追加
+- [x] 2.2 Open WebUIサービス定義の追加
   - `docker-compose.yml`に`ghcr.io/open-webui/open-webui:main`イメージのサービスを追加し、`agentplatform-net`に接続する
   - `OLLAMA_BASE_URL`をOllamaサービスのコンテナ名を指すよう設定し、`depends_on: ollama`を指定する
   - Open WebUI用ボリュームをマウントし、ホストアクセス用ポートを`.env`の値で公開する

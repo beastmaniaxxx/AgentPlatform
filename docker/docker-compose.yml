@@ -22,3 +22,16 @@ services:
     volumes:
       - ollama-data:/root/.ollama
       - ${LMSTUDIO_MODELS_PATH}:/lmstudio-models:ro
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    networks:
+      - agentplatform-net
+    depends_on:
+      - ollama
+    env_file:
+      - .env
+    ports:
+      - "${OPEN_WEBUI_PORT}:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
