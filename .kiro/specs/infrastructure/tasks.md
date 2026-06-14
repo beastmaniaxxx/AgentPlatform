@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Foundation: Docker Compose基盤とネットワーク・ボリューム・環境変数管理の準備
+- [x] 1. Foundation: Docker Compose基盤とネットワーク・ボリューム・環境変数管理の準備
 - [x] 1.1 docker-compose.ymlの骨格作成（共有ネットワークとボリューム定義）
   - `docker/`ディレクトリを新設し、`docker-compose.yml`に`agentplatform-net`という名前のブリッジネットワークを定義する
   - Open WebUI・Ollama・SearXNG用の名前付きボリュームをトップレベル`volumes:`に定義する
