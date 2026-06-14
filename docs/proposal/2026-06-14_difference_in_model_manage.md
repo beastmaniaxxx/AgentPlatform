@@ -134,8 +134,9 @@ Ollamaコンテナ：
 ### 取り込み手順
 
 ```bash
-# Ollamaコンテナに入る
-docker exec -it ollama bash
+# Ollamaコンテナに入る（本Specの構成ではcontainer_nameを固定していないため、
+# サービス名で `docker compose exec` を使う。docker/model-sharing.md参照）
+docker compose exec ollama sh
 
 # /tmpにModelfileを作成
 cat << 'EOF' > /tmp/Modelfile-qwen3
