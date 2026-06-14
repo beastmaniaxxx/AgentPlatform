@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [ ] 1. Foundation: Docker Compose基盤とネットワーク・ボリューム・環境変数管理の準備
-- [ ] 1.1 docker-compose.ymlの骨格作成（共有ネットワークとボリューム定義）
+- [x] 1.1 docker-compose.ymlの骨格作成（共有ネットワークとボリューム定義）
   - `docker/`ディレクトリを新設し、`docker-compose.yml`に`agentplatform-net`という名前のブリッジネットワークを定義する
   - Open WebUI・Ollama・SearXNG用の名前付きボリュームをトップレベル`volumes:`に定義する
   - 観測可能完了: `docker compose -f docker/docker-compose.yml config`がエラーなく実行でき、出力に`agentplatform-net`ネットワークと各ボリュームが含まれる
@@ -68,3 +68,6 @@
   - 観測可能完了: Open WebUIからのチャット応答とSearXNGの`/search?format=json`によるJSON応答が得られ、Phase1完了基準（Open WebUIからチャット可能、SearXNGのJSON API応答）を満たすことが確認できる
   - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 3.2, 4.3, 5.1, 5.3, 6.1, 6.2, 6.3_
   - _Depends: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1_
+
+## Implementation Notes
+- 1.1: `docker compose config` は、サービスから参照されていないトップレベルの`networks:`/`volumes:`定義を出力から除外する（Compose v5.1.4で確認）。`docker/docker-compose.yml`には`agentplatform-net`ネットワークと`open-webui-data`/`ollama-data`/`searxng-data`ボリュームをソースYAMLとして定義済み。これらが`config`の出力に現れるのは、2.1〜2.4でサービスが各リソースを参照した時点になる（3.2での統合確認時に解決）。

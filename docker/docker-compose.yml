@@ -1,0 +1,11 @@
+networks:
+  agentplatform-net:
+    name: agentplatform-net
+    driver: bridge
+
+volumes:
+  open-webui-data:
+  ollama-data:
+  searxng-data:
+
+services: {}
