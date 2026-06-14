@@ -57,7 +57,7 @@
   - _Requirements: 6.2_
 
 - [ ] 4. Core: DifyBridge Pipelineの実装
-- [ ] 4.1 テキストメッセージ中継とエラーハンドリングの実装
+- [x] 4.1 テキストメッセージ中継とエラーハンドリングの実装
   - `pipelines/dify_bridge.py`を作成し、`Valves`（`DIFY_API_BASE_URL`・`DIFY_APP_API_KEY`・`REQUEST_TIMEOUT_SECONDS`を環境変数から読み込む）と`Pipe`クラスを実装する
   - `pipe()`がテキストメッセージを`POST /v1/chat-messages`（`response_mode: blocking`、`user`にOpen WebUIのユーザー識別子を設定）でDifyへ転送し、`answer`を戻り値として返す
   - Dify API呼び出し中であることを示す中間状態（処理中表示）を返す処理と、接続エラー・タイムアウト発生時に例外を発生させずユーザー向けエラーメッセージ文字列を返す処理を実装する

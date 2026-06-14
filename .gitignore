@@ -11,3 +11,10 @@
 docker/.env
 docker/docker-compose.override.yml
 docker/searxng/settings.yml
+
+# Python（pipelines/のテスト実行・Pipelinesランタイムが生成する成果物）
+__pycache__/
+*.pyc
+.pytest_cache/
+# pipelinesコンテナが起動時にパイプラインごとに生成するvalves設定ディレクトリ
+pipelines/*/valves.json
