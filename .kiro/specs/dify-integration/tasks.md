@@ -13,7 +13,7 @@
   - 観測可能完了: `docker/dify/ssrf_proxy/squid.conf.template`・`docker/dify/ssrf_proxy/docker-entrypoint.sh`・`docker/dify/README.md`が存在し、READMEに採用したDifyバージョンタグが明記されている
   - _Requirements: 1.1_
 
-- [ ] 2. Core: Difyサービス群のdocker-compose追加
+- [x] 2. Core: Difyサービス群のdocker-compose追加
 - [x] 2.1 Difyデータストア（PostgreSQL+pgvector, Redis）サービスの追加
   - `docker-compose.yml`に`dify-db`（`pgvector/pgvector`イメージ、`docker/.env`の`DIFY_DB_*`を使用）と`dify-redis`サービスを追加し、両方を`agentplatform-net`に接続する
   - `dify-db`・`dify-redis`それぞれに名前付きボリュームを定義し、トップレベル`volumes:`に追加する
