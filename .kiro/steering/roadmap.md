@@ -2,7 +2,7 @@
 
 ## Overview
 
-完全セルフホスト型のマルチモーダルAIエージェントを構築する。Open WebUIを唯一のユーザー接点とし、Pipeline経由でDifyへ中継、Difyワークフローが各バックエンド（SearXNG、ComfyUI、Ollama、imgpush、SerpAPI、Instagram Graph API）を呼び出すオーケストレーション構成を採る。`docs/requirements_definition_v1.md` の8フェーズ・`docs/project_structure_proposal_v1.md` の9Spec分解案をそのまま採用し、依存順に段階実装する。
+完全セルフホスト型のマルチモーダルAIエージェントを構築する。Open WebUIを唯一のユーザー接点とし、Pipeline経由でDifyへ中継、Difyワークフローが各バックエンド（SearXNG、ComfyUI、Ollama、imgpush、SerpAPI、Instagram Graph API）を呼び出すオーケストレーション構成を採る。`docs/requirements_definition_v1.md` の9フェーズ・`docs/project_structure_proposal_v1.md` の9Spec分解案をそのまま採用し、依存順に段階実装する。
 
 ## Approach Decision
 
