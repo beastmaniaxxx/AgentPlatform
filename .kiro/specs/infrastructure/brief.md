@@ -10,7 +10,7 @@
 
 ## Desired Outcome
 
-`docker compose up` でOpen WebUI・Ollama・SearXNGが同一Dockerネットワーク上で起動し、Open WebUIのチャットからWeb検索（SearXNG経由）が動作する状態（Phase1完了基準）。後続Spec（dify-integration等）が追加するサービスを受け入れられるネットワーク・ボリューム構成になっていること。
+`docker compose up` でOpen WebUI・Ollama・SearXNGが同一Dockerネットワーク上で起動し、Open WebUIからチャット可能、SearXNGの `/search?format=json` が応答する状態（Phase1完了基準）。後続Spec（dify-integration等）が追加するサービスを受け入れられるネットワーク・ボリューム構成になっていること。LLM要約付きのWeb検索機能自体は `web-search` Spec（Phase3、`dify-integration` 完了後）で実現する。
 
 ## Approach
 

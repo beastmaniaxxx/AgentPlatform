@@ -15,14 +15,14 @@ AgentPlatform/
 │   │   └── structure.md            # ディレクトリ規約・命名規則
 │   └── specs/                      # 機能ごとの仕様
 │       ├── infrastructure/         # Phase 1：基盤環境
-│       ├── web-search/             # Phase 1：SearXNG ワード検索
 │       ├── dify-integration/       # Phase 2：Dify連携
-│       ├── image-generation/       # Phase 3：ComfyUI画像生成
-│       ├── reverse-image-search/   # Phase 4：逆画像検索
-│       ├── instagram-search/       # Phase 5：Instagram連携
-│       ├── multimodal-rag/         # Phase 6：マルチモーダルRAG
-│       ├── video-generation/       # Phase 7：動画生成
-│       └── ui-customization/       # Phase 8：UI調整
+│       ├── web-search/             # Phase 3：SearXNG ワード検索
+│       ├── image-generation/       # Phase 4：ComfyUI画像生成
+│       ├── reverse-image-search/   # Phase 5：逆画像検索
+│       ├── instagram-search/       # Phase 6：Instagram連携
+│       ├── multimodal-rag/         # Phase 7：マルチモーダルRAG
+│       ├── video-generation/       # Phase 8：動画生成
+│       └── ui-customization/       # Phase 9：UI調整
 │
 ├── .claude/                        # Claude Code設定
 │   └── settings.local.json         # 権限設定
@@ -172,14 +172,14 @@ docker ← pipelines ← workflows
 | Spec名                  | Phase | 内容                                        | 依存先             |
 | ----------------------- | ----- | ------------------------------------------- | ------------------ |
 | infrastructure          | 1     | Docker基盤、ネットワーク、ボリューム        | -                  |
-| web-search              | 1     | SearXNG連携（ワード検索）                   | infrastructure, dify-integration |
 | dify-integration        | 2     | DifyとOpen WebUIのPipeline中継              | infrastructure     |
-| image-generation        | 3     | ComfyUIによるテキスト→画像                  | dify-integration   |
-| reverse-image-search    | 4     | imgpush + SerpAPI                           | dify-integration   |
-| instagram-search        | 5     | Instagram Graph API                         | dify-integration   |
-| multimodal-rag          | 6     | Difyナレッジベース                          | dify-integration, reverse-image-search |
-| video-generation        | 7     | ComfyUI動画生成                             | image-generation   |
-| ui-customization        | 8     | Functions / Custom CSS                      | （全機能完了後）   |
+| web-search              | 3     | SearXNG連携（ワード検索）                   | infrastructure, dify-integration |
+| image-generation        | 4     | ComfyUIによるテキスト→画像                  | dify-integration   |
+| reverse-image-search    | 5     | imgpush + SerpAPI                           | dify-integration   |
+| instagram-search        | 6     | Instagram Graph API                         | dify-integration   |
+| multimodal-rag          | 7     | Difyナレッジベース                          | dify-integration, reverse-image-search |
+| video-generation        | 8     | ComfyUI動画生成                             | image-generation   |
+| ui-customization        | 9     | Functions / Custom CSS                      | （全機能完了後）   |
 
 ---
 
@@ -378,7 +378,7 @@ cc-sddでは多くのファイルを生成するため、権限設定で許可�
   └─ /kiro-impl infrastructure
      → docker-compose.yml が完成
 
-[Spec 2: web-search]
+[Spec 2: dify-integration]
   └─ 同上のフロー
 
 ... 以降、各Specを順次進める ...
@@ -481,7 +481,7 @@ npx cc-sdd@latest --claude --lang ja
 ## まとめ：このプロジェクト構成の特徴
 
 1. **cc-sddの規約に完全準拠**：`.kiro/steering/` と `.kiro/specs/<feature>/` の二層構造
-2. **Phaseと1:1対応するSpec分解**：要件定義書のPhase 1〜8がそのままSpecになる
+2. **Phaseと1:1対応するSpec分解**：要件定義書のPhase 1〜9がそのままSpecになる
 3. **依存関係の明示**：spec.jsonのdependenciesで進行順序を制御
 4. **実装ディレクトリとの分離**：仕様（.kiro/）と実装（docker/, pipelines/等）を分離
 5. **個人開発に最適化**：CIや高度な権限分離は省略、必要最小限の構成

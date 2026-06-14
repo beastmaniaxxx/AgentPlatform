@@ -25,7 +25,7 @@
 
 ## Boundary Strategy
 
-- **Why this split**: 要件定義書のPhase 1〜8と1:1対応させ、各Specが独立した「動作確認可能な単位」になるよう分解。`infrastructure` と `dify-integration` を共通基盤として先行させ、以降の機能Specはこれらに依存する形にすることで、機能追加時の影響範囲を局所化する
+- **Why this split**: 要件定義書のPhase 1〜9と1:1対応させ、各Specが独立した「動作確認可能な単位」になるよう分解。`infrastructure` と `dify-integration` を共通基盤として先行させ、以降の機能Specはこれらに依存する形にすることで、機能追加時の影響範囲を局所化する。下記の依存順は要件定義書のPhase 1〜9の順序と一致している
 - **Shared seams to watch**:
   - `pipelines/dify_bridge.py`（Open WebUI ↔ Dify中継）は複数Specから参照される共通コンポーネントのため、変更時は依存する全Specへの影響を確認する
   - `imgpush` は `reverse-image-search` と将来の `multimodal-rag` 拡張の両方で使われる可能性があるため、インターフェースを安定させる

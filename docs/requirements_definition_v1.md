@@ -245,14 +245,15 @@
 
 | フェーズ | 内容                                                                  | 完了基準                              |
 | -------- | --------------------------------------------------------------------- | ------------------------------------- |
-| Phase 1  | 基盤環境構築（Docker・Open WebUI・Ollama・SearXNG）                   | チャットからWeb検索が動作             |
+| Phase 1  | 基盤環境構築（Docker・Open WebUI・Ollama・SearXNG）                   | Open WebUIからチャット可能、SearXNGの`/search?format=json`が応答する（疎通確認） |
 | Phase 2  | Dify導入とOpen WebUI連携Pipeline実装                                  | DifyワークフローをUIから呼び出せる    |
-| Phase 3  | ComfyUI連携・画像生成パイプライン構築                                 | プロンプト→生成画像表示までが動作     |
-| Phase 4  | 逆画像検索（imgpush＋SerpAPI）の構築                                  | 画像アップロード→類似画像取得が動作   |
-| Phase 5  | Instagram Graph API連携                                               | ハッシュタグ検索が動作                |
-| Phase 6  | マルチモーダルRAG構築（Difyナレッジベース）                           | 画像→画像検索が動作                   |
-| Phase 7  | 動画生成パイプライン構築                                              | 短尺動画の生成が動作                  |
-| Phase 8  | UX調整・ワークフロー最適化                                            | 全機能を統一的なチャット体験で利用可  |
+| Phase 3  | SearXNG連携のWeb検索（ワード検索・画像検索）構築                      | チャットからLLM要約付きWeb検索・画像検索が動作 |
+| Phase 4  | ComfyUI連携・画像生成パイプライン構築                                 | プロンプト→生成画像表示までが動作     |
+| Phase 5  | 逆画像検索（imgpush＋SerpAPI）の構築                                  | 画像アップロード→類似画像取得が動作   |
+| Phase 6  | Instagram Graph API連携                                               | ハッシュタグ検索が動作                |
+| Phase 7  | マルチモーダルRAG構築（Difyナレッジベース）                           | 画像→画像検索が動作                   |
+| Phase 8  | 動画生成パイプライン構築                                              | 短尺動画の生成が動作                  |
+| Phase 9  | UX調整・ワークフロー最適化                                            | 全機能を統一的なチャット体験で利用可  |
 
 ---
 
