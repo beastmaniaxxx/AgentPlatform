@@ -56,7 +56,7 @@
   - _Depends: 2.1_
 
 - [ ] 3. Integration & Validation: 起動確認とPhase1完了基準の検証
-- [ ] 3.1 スモークテスト手順書の作成
+- [x] 3.1 スモークテスト手順書の作成
   - `tests/smoke/infrastructure_smoke.md`に、`docker compose up`実行手順、Open WebUIチャット確認手順、Ollamaコンテナ停止時のOpen WebUI側エラー表示確認手順、SearXNGの`/search?format=json`応答確認手順、LM Studioモデルディレクトリの読み取り専用マウント確認手順（`docker/model-sharing.md`を参照したModelfile取り込みの動作確認を含む）を記載する
   - 観測可能完了: `tests/smoke/infrastructure_smoke.md`が作成され、上記5つの確認手順がすべて記載されている
   - _Requirements: 2.3, 6.4_
