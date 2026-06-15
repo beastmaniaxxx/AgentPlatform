@@ -330,6 +330,8 @@ services:
     image: ghcr.io/open-webui/pipelines:main
     networks:
       - agentplatform-net
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${PIPELINES_PORT}:9099"
     volumes:
