@@ -88,7 +88,7 @@
   - _Requirements: 1.1, 1.2, 1.3_
   - _Depends: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1_
 
-- [ ] 6.2 Dify初期化・Ollama接続・Pipelines接続手順書の作成
+- [x] 6.2 Dify初期化・Ollama接続・Pipelines接続手順書の作成
   - `docs/dify-integration-setup.md`に、(1) Difyの初回管理者アカウント作成手順、(2) Dify管理画面でのOllamaモデルプロバイダー設定手順（Base URL `http://ollama:11434`）、(3) `workflows/echo_workflow.yml`のインポート・公開・アプリAPIキー発行手順（発行したキーを`docker/.env`の`DIFY_APP_API_KEY`に設定する手順を含む）、(4) Open WebUI管理画面でのPipelines接続設定手順（`http://pipelines:9099`の登録）を記載する
   - 観測可能完了: `docs/dify-integration-setup.md`が作成され、上記4手順が`docker/.env`の対応する変数名（`DIFY_APP_API_KEY`等）を明記した形で記載されている
   - _Requirements: 3.2, 4.1, 6.1, 6.2_
