@@ -101,7 +101,7 @@
   - _Requirements: 4.2, 4.3_
   - _Depends: 6.2_
 
-- [ ] 6.4 Open WebUI ↔ Dify中継のEnd-to-End確認
+- [x] 6.4 Open WebUI ↔ Dify中継のEnd-to-End確認
   - `docs/dify-integration-setup.md`の手順に従い、`echo_workflow.yml`のAPIキーを`docker/.env`の`DIFY_APP_API_KEY`に設定して`pipelines`コンテナを再起動し、Open WebUI管理画面でPipelines接続（`dify_bridge`モデル）を登録する
   - Open WebUIのチャットで`dify_bridge`モデルを選択し、(a) テキストメッセージを送信して応答が表示されること、(b) 画像を含むメッセージを送信して画像受信を示す応答が表示されること、(c) `dify-api`コンテナを停止した状態でメッセージを送信し、接続エラーメッセージが表示されることを確認する
   - 観測可能完了: Open WebUIのチャット画面で、テキスト応答・画像受信確認応答・（`dify-api`停止時の）接続エラーメッセージの3パターンがそれぞれ表示される
@@ -114,3 +114,4 @@
 - 6.1: `agentplatform_searxng-data`ボリューム内に、過去の起動失敗時の名残で`/etc/searxng/settings.yml`がディレクトリとして作成されており、`./searxng/settings.yml:/etc/searxng/settings.yml:ro`のbind mountが`not a directory`エラーで失敗していた。ホスト側`docker/searxng/settings.yml`（誤ってディレクトリ化）を削除し`settings.yml.example`からファイルとして再作成、かつボリューム内の`settings.yml`ディレクトリを`docker run --rm -v agentplatform_searxng-data:/data busybox rmdir //data/settings.yml`で削除して解消（`docker/searxng/settings.yml`は`.gitignore`対象）。
 - 6.1: ホストの`127.0.0.1:8080`は別プロジェクト（`009_Apps/003_SearXNG`）のSearXNGコンテナが使用中でポート競合したため、本プロジェクトの`docker/.env`の`SEARXNG_PORT`を`8081`に変更（このマシン固有のローカル設定。`.env.example`のデフォルト`8080`は変更不要）。
 - 6.4: `docker-compose.yml`の`pipelines`サービスに`env_file: - .env`が指定されておらず、`docker/.env`の`DIFY_API_BASE_URL`/`DIFY_APP_API_KEY`がコンテナに渡らない（`DIFY_APP_API_KEY`は常に空文字となり`dify_bridge.py`がDify APIへの認証に失敗する）状態だった。`pipelines`サービスに`env_file: - .env`を追加し`docker compose up -d pipelines`で再作成して解消。
+- 6.4: (c)確認後に`dify-api`コンテナを再起動した直後の最初のリクエストで`dify_bridge`が「Read timed out (read timeout=60)」を返すことがある。`dify-api`が`healthy`になった直後でも内部初期化が完全に終わっていないことがあるため、再起動直後はメッセージ送信を1〜2回リトライすれば解消する（pipelines→dify-api間の接続・APIキー認証自体は問題なし）。
