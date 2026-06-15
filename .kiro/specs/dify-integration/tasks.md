@@ -80,7 +80,7 @@
   - _Requirements: 6.1_
   - _Boundary: Echo Verification Workflow_
 
-- [ ] 6. Integration & Validation: 統合起動確認とEnd-to-End検証
+- [x] 6. Integration & Validation: 統合起動確認とEnd-to-End検証
 - [x] 6.1 Difyサービス群を含む統合起動確認
   - `docker compose up -d`で既存サービス（`open-webui`/`ollama`/`searxng`）とDifyサービス群・`pipelines`を含む全コンテナを起動し、`docker compose ps`で全サービスが`Up`/healthyであることを確認する
   - `dify-api`コンテナ内から`curl http://ollama:11434`（またはOllama API）を実行し、`agentplatform-net`上で`ollama`サービスにコンテナ名で到達できることを確認する
