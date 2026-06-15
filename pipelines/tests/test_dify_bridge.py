@@ -298,6 +298,32 @@ def test_pipe_image_only_message_uses_placeholder_query(monkeypatch):
     assert captured["json"]["query"] == Pipeline.IMAGE_ONLY_QUERY_TEXT
 
 
+def test_pipe_returns_error_message_on_invalid_image_data(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": "data:image/png;base64,A"},
+                },
+            ],
+        }
+    ]
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="dify_bridge",
+        messages=messages,
+        body={"user": {"id": "user-123"}},
+    )
+
+    assert isinstance(result, str)
+    assert "画像" in result
+
+
 def test_pipe_returns_error_and_skips_chat_messages_when_upload_fails(monkeypatch):
     pipeline = _make_pipeline(monkeypatch)
     calls = []

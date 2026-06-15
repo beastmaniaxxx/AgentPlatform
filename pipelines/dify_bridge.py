@@ -49,7 +49,11 @@ class Pipeline:
         場合は`chat-messages`を呼び出さずエラーメッセージを返す。
         """
         user_id = self._resolve_user_id(body)
-        text, image = self._extract_content(messages)
+
+        try:
+            text, image = self._extract_content(messages)
+        except ValueError as exc:
+            return self._invalid_image_message(exc)
 
         payload = {
             "inputs": {},
@@ -139,3 +143,7 @@ class Pipeline:
     @staticmethod
     def _connection_error_message(exc: Exception) -> str:
         return f"⚠️ Dify環境への接続に失敗しました: {exc}"
+
+    @staticmethod
+    def _invalid_image_message(exc: Exception) -> str:
+        return f"⚠️ 画像の処理に失敗しました: {exc}"
