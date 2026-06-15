@@ -81,7 +81,7 @@
   - _Boundary: Echo Verification Workflow_
 
 - [ ] 6. Integration & Validation: 統合起動確認とEnd-to-End検証
-- [ ] 6.1 Difyサービス群を含む統合起動確認
+- [x] 6.1 Difyサービス群を含む統合起動確認
   - `docker compose up -d`で既存サービス（`open-webui`/`ollama`/`searxng`）とDifyサービス群・`pipelines`を含む全コンテナを起動し、`docker compose ps`で全サービスが`Up`/healthyであることを確認する
   - `dify-api`コンテナ内から`curl http://ollama:11434`（またはOllama API）を実行し、`agentplatform-net`上で`ollama`サービスにコンテナ名で到達できることを確認する
   - 観測可能完了: `docker compose ps`で`dify-db`/`dify-redis`/`dify-sandbox`/`dify-ssrf-proxy`/`dify-plugin-daemon`/`dify-api`/`dify-worker`/`dify-worker-beat`/`dify-web`/`pipelines`/既存3サービスすべてが起動状態であり、`dify-api`コンテナから`ollama`への接続が成功する
@@ -110,3 +110,6 @@
 
 ## Implementation Notes
 - 2.1: `docker compose down -v`は本プロジェクトの全ボリューム（`agentplatform_open-webui-data`/`agentplatform_ollama-data`/`agentplatform_searxng-data`を含む既存データ）を削除する。検証作業で特定サービスのみ起動・確認した後の後片付けは、`docker compose down`（`-v`なし）または`docker volume rm <個別のボリューム名>`を使用し、`-v`付きの`down`はプロジェクト全体のボリュームを削除する破壊的操作であるため使用しないこと。本タスクの検証作業中に誤って`down -v`を実行し、`infrastructure` Spec検証時に作成したOllamaモデル（`qwen3vl-test`等）・Open WebUIデータ・SearXNGデータが失われた（リカバリ不可、再構築で対応）。
+- 6.1: `docker compose up -d`実行時、過去のセッションで`dify-db-data`ボリュームが古い`DIFY_DB_PASSWORD`で初期化されていたため、`dify-worker`/`dify-worker-beat`/`dify-plugin-daemon`がPostgreSQL認証エラー（`password authentication failed for user "postgres"`）で起動失敗した。`docker compose exec -u postgres dify-db psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '<現在のDIFY_DB_PASSWORD>';"`で現行`docker/.env`の値に同期して解消。`.env`の`DIFY_DB_PASSWORD`を変更した場合、既存ボリュームのPostgreSQLパスワードは自動更新されないため同様の対応が必要。
+- 6.1: `agentplatform_searxng-data`ボリューム内に、過去の起動失敗時の名残で`/etc/searxng/settings.yml`がディレクトリとして作成されており、`./searxng/settings.yml:/etc/searxng/settings.yml:ro`のbind mountが`not a directory`エラーで失敗していた。ホスト側`docker/searxng/settings.yml`（誤ってディレクトリ化）を削除し`settings.yml.example`からファイルとして再作成、かつボリューム内の`settings.yml`ディレクトリを`docker run --rm -v agentplatform_searxng-data:/data busybox rmdir //data/settings.yml`で削除して解消（`docker/searxng/settings.yml`は`.gitignore`対象）。
+- 6.1: ホストの`127.0.0.1:8080`は別プロジェクト（`009_Apps/003_SearXNG`）のSearXNGコンテナが使用中でポート競合したため、本プロジェクトの`docker/.env`の`SEARXNG_PORT`を`8081`に変更（このマシン固有のローカル設定。`.env.example`のデフォルト`8080`は変更不要）。
