@@ -1,0 +1,22 @@
+{
+  "feature_name": "dify-integration",
+  "created_at": "2026-06-14T13:53:26Z",
+  "updated_at": "2026-06-14T15:00:00Z",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}

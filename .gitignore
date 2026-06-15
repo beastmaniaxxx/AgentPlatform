@@ -7,6 +7,14 @@
 .migration-backups/
 
 # Docker環境固有の設定（機密情報・ホスト依存パス・GPU設定を含む）
+# Dify関連の機密情報（DIFY_SECRET_KEY, DIFY_DB_PASSWORD, DIFY_REDIS_PASSWORD, DIFY_APP_API_KEY等）も本ファイル経由で管理される
 docker/.env
 docker/docker-compose.override.yml
 docker/searxng/settings.yml
+
+# Python（pipelines/のテスト実行・Pipelinesランタイムが生成する成果物）
+__pycache__/
+*.pyc
+.pytest_cache/
+# pipelinesコンテナが起動時にパイプラインごとに生成するvalves設定ディレクトリ
+pipelines/*/valves.json
