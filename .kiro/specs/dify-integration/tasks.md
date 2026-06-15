@@ -94,7 +94,7 @@
   - _Requirements: 3.2, 4.1, 6.1, 6.2_
   - _Depends: 6.1, 5.1_
 
-- [ ] 6.3 Dify-Ollamaモデル接続のEnd-to-End確認
+- [x] 6.3 Dify-Ollamaモデル接続のEnd-to-End確認
   - `docs/dify-integration-setup.md`の手順に従いDify管理画面でOllamaモデルプロバイダーを設定し、Ollama上のモデルがDifyのモデル選択候補に表示されることを確認する
   - Ollama接続済みモデルを使用するワークフロー（`echo_workflow.yml`のデバッグ実行等）を実行し、Ollamaからの応答が処理結果として得られることを確認する
   - 観測可能完了: Dify管理画面のモデル選択ドロップダウンにOllama提供モデルが表示され、該当モデルを使用したワークフローのデバッグ実行がOllamaからの非空の応答を返す
