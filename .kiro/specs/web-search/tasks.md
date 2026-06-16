@@ -6,7 +6,7 @@
   - 観測可能完了: `docker/.env.example`をコピーして作成した`docker/.env`に両変数が存在し、`git status`で`docker/.env`が追跡対象外であることが確認できる
   - _Requirements: 1.4, 2.4_
 
-- [ ] 1.2 SearXNGエンジン有効化設定の追加
+- [x] 1.2 SearXNGエンジン有効化設定の追加
   - `docker/searxng/settings.yml.example`の`engines:`セクションに、ワード検索向け（Google・Bing・DuckDuckGo・Brave）と画像検索向け（Google Images・Bing Images・DuckDuckGo Images・Yandex Images）のエンジンを`disabled: false`で有効化する設定を追加する
   - 認証情報やAPIキーを必要とするエンジンは追加しない
   - 観測可能完了: `settings.yml.example`を`settings.yml`としてコピーし`docker compose restart searxng`後、`curl "http://localhost:${SEARXNG_PORT}/search?format=json&q=test"`および`&categories=images&q=test`の応答に対象エンジンの結果が含まれる
