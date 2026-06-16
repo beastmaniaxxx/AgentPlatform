@@ -11,7 +11,32 @@ import os
 import requests
 from pydantic import BaseModel
 
-from _dify_search_bridge import DifyChatBridge
+
+class DifyChatBridge:
+    def __init__(self, base_url: str, api_key: str, timeout: int):
+        self._base_url = base_url
+        self._api_key = api_key
+        self._timeout = timeout
+
+    def ask(self, query: str, user_id: str) -> str:
+        response = requests.post(
+            f"{self._base_url}/chat-messages",
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "inputs": {},
+                "query": query,
+                "response_mode": "blocking",
+                "user": user_id,
+            },
+            timeout=self._timeout,
+        )
+        response.raise_for_status()
+        return response.json().get("answer", "")
+
+    @staticmethod
+    def resolve_user_id(body: dict) -> str:
+        user = (body or {}).get("user") or {}
+        return user.get("id") or user.get("email") or "open-webui-user"
 
 
 class Pipeline:

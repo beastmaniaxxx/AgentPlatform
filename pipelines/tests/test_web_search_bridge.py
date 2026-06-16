@@ -1,7 +1,6 @@
 import requests
 
-from _dify_search_bridge import DifyChatBridge
-from web_search_bridge import Pipeline
+from web_search_bridge import DifyChatBridge, Pipeline
 
 
 def _make_pipeline(monkeypatch, **env):

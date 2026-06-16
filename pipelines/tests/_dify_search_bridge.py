@@ -1,6 +1,6 @@
 """
 Dify Chat APIへのテキストクエリ中継を提供する共有ヘルパーモジュール。
-web_search_bridge / image_search_bridge の両 Pipeline から使用される。
+テスト専用モジュール（tests/ 配下に配置することで Pipelines ランタイムの走査対象外にしている）。
 """
 
 import requests
