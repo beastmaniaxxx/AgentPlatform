@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Foundation: 環境変数・SearXNGエンジン設定・Dify中継共有ヘルパーの準備
+- [x] 1. Foundation: 環境変数・SearXNGエンジン設定・Dify中継共有ヘルパーの準備
 - [x] 1.1 docker/.env.exampleへのDify Appキー環境変数の追加
   - `docker/.env.example`に`DIFY_WEB_SEARCH_APP_API_KEY`・`DIFY_IMAGE_SEARCH_APP_API_KEY`（各ワークフローのAPIキー、初期値は空欄）をコメント付きで追加する
   - 観測可能完了: `docker/.env.example`をコピーして作成した`docker/.env`に両変数が存在し、`git status`で`docker/.env`が追跡対象外であることが確認できる
