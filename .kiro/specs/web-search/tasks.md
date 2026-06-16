@@ -43,7 +43,7 @@
   - _Requirements: 2.1, 2.2, 2.3, 2.5_
   - _Boundary: Image Search Workflow_
 
-- [ ] 3.2 (P) ImageSearchBridge Pipelineの実装
+- [x] 3.2 (P) ImageSearchBridge Pipelineの実装
   - `pipelines/image_search_bridge.py`に`Pipeline`クラス（`self.id = "image_search"`、`Valves`に`DIFY_API_BASE_URL`・`DIFY_IMAGE_SEARCH_APP_API_KEY`・`REQUEST_TIMEOUT_SECONDS`）を実装し、`pipe()`が`_dify_search_bridge.DifyChatBridge.ask()`を呼び出してテキストクエリを中継する
   - `DifyChatBridge.ask()`が例外を発生させた場合、`pipe()`は例外を再raiseせず「⚠️ 画像検索の実行に失敗しました」等のエラーメッセージ文字列を返す
   - 観測可能完了: `docker compose restart pipelines`後、`curl http://localhost:${PIPELINES_PORT}/models`のレスポンスに`image_search`が含まれる。モックしたDify応答に対し`pipe()`が`answer`の値を返し、接続エラーをシミュレートした場合は例外を発生させずエラーメッセージ文字列を返すことをユニットテストで確認できる
