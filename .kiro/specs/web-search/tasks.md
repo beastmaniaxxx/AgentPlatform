@@ -19,7 +19,7 @@
   - 観測可能完了: モックしたDify応答に対し`DifyChatBridge.ask()`が`answer`の値を返すこと、接続エラーをシミュレートした場合に`RequestException`が発生することをユニットテストで確認できる
   - _Requirements: 1.4, 2.4_
 
-- [ ] 2. Core: ワード検索ワークフローとPipelineの実装
+- [x] 2. Core: ワード検索ワークフローとPipelineの実装
 - [x] 2.1 (P) web_searchワークフローの作成
   - `workflows/web_search.yml`に、Start→HTTP Request（`{SEARXNG_BASE_URL}/search?format=json&q={query}`）→Code node（`results`配列から上位5件の`title`/`url`/`content`を抽出し件数を算出）→If-Else（0件分岐）→LLM node（Ollama接続済みモデルによる上位5件の要約・各要約への引用元URL付与）/Answer（0件時の再検索を促す通知文）という構成のDify advanced-chat DSLを作成する
   - SearXNGへのHTTPリクエストにユーザー識別情報を含めない
