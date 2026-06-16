@@ -12,7 +12,7 @@
   - 観測可能完了: `settings.yml.example`を`settings.yml`としてコピーし`docker compose restart searxng`後、`curl "http://localhost:${SEARXNG_PORT}/search?format=json&q=test"`および`&categories=images&q=test`の応答に対象エンジンの結果が含まれる
   - _Requirements: 1.1, 1.5, 2.1, 2.5_
 
-- [ ] 1.3 Dify中継共有ヘルパーの実装
+- [x] 1.3 Dify中継共有ヘルパーの実装
   - `pipelines/_dify_search_bridge.py`に`DifyChatBridge`クラスを実装し、`ask(query, user_id)`が`POST /v1/chat-messages`（テキストクエリのみ、`response_mode: blocking`）を呼び出して`answer`を返す
   - 接続エラー・タイムアウト・非2xx応答時は`requests.exceptions.RequestException`を発生させ、エラーメッセージへの変換は呼び出し元（各Pipeline）に委ねる
   - `dify_bridge.py`の`_resolve_user_id`と同様のユーザー識別子解決ロジックを実装する
