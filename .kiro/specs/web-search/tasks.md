@@ -52,7 +52,7 @@
   - _Depends: 1.3_
 
 - [ ] 4. Integration & Validation: セットアップ手順とEnd-to-End確認
-- [ ] 4.1 セットアップ手順書の作成
+- [x] 4.1 セットアップ手順書の作成
   - `docs/web-search-setup.md`に、(1) `workflows/web_search.yml`・`workflows/image_search.yml`のDifyへのインポート・公開・APIキー発行手順（発行したキーを`docker/.env`の`DIFY_WEB_SEARCH_APP_API_KEY`/`DIFY_IMAGE_SEARCH_APP_API_KEY`へ設定する手順を含む）、(2) `pipelines`コンテナの再起動手順、(3) Open WebUI管理画面での`web_search`/`image_search`モデル登録手順、(4) SearXNGエンジン有効化設定の反映確認手順（`curl`コマンド）を記載する
   - 観測可能完了: `docs/web-search-setup.md`が作成され、上記4手順が`docker/.env`の対応する変数名を明記した形で記載されている
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
