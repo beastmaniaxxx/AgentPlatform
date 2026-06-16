@@ -35,7 +35,7 @@
   - _Boundary: WebSearchBridge Pipeline_
   - _Depends: 1.3_
 
-- [ ] 3. Core: 画像検索ワークフローとPipelineの実装
+- [x] 3. Core: 画像検索ワークフローとPipelineの実装
 - [x] 3.1 (P) image_searchワークフローの作成
   - `workflows/image_search.yml`に、Start→HTTP Request（`{SEARXNG_BASE_URL}/search?format=json&categories=images&q={query}`）→Code node（`results`配列から`img_src`等を抽出し`![](url)`形式のMarkdown文字列と件数を算出、`img_src`が欠落した結果はスキップ）→If-Else（0件分岐）→Answer（Markdown画像一覧 / 0件時の再検索を促す通知文）という構成のDify advanced-chat DSLを作成する
   - SearXNGへのHTTPリクエストにユーザー識別情報を含めない
