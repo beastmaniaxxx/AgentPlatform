@@ -184,7 +184,7 @@ workflow:
         cases:
         - case_id: case_0_results
           conditions:
-          - comparison_operator: ==
+          - comparison_operator: '='
             id: cond_count_zero
             value: '0'
             varType: number
