@@ -19,56 +19,105 @@
 | `PIPELINES_PORT` | `docker/.env` | Open WebUI Pipelines のホスト公開ポート（既定: `9099`） |
 | `OPEN_WEBUI_PORT` | `docker/.env` | Open WebUI のホスト公開ポート（既定: `3000`） |
 
+## 0. imgpush サービスの起動
+
+imgpush は本 Spec で新規追加されたサービスである。既存環境を `docker compose up -d` で起動済みでも、compose ファイル更新後に未起動の場合があるため、以降の手順の前に `docker/` ディレクトリで明示的に起動しておく（手順1のトンネルは起動中の imgpush を指すため、ここで先に立ち上げる）。
+
+```powershell
+docker compose up -d imgpush
+docker compose ps imgpush
+```
+
+`STATUS` が `Up`（`healthy` または `health: starting`）であればよい。詳細な疎通確認は手順5で行う。
+
 ## 1. imgpush を外部公開する
 
 SerpAPI は公開URLにアクセスして逆画像検索を実行する。`localhost` や LAN 内のプライベートアドレスは到達できないため、imgpush を外部から到達可能な URL で公開し、その URL を `IMGPUSH_PUBLIC_BASE_URL` に設定する。
 
-以下の 1-1・1-2 はどちらか一方を選択する。Cloudflare Tunnel を使う場合は 1-1 のみ実施し、1-2 はスキップする。
+公開方法は複数あるが、**独自ドメイン不要で最も手軽な Cloudflare クイックトンネル**（1-1）を推奨する。独自ドメインを持っている場合は名前付きトンネル（1-2）で固定URLを使える。ngrok（1-3）も利用できる。1-1〜1-3 のいずれか1つを選ぶ。
 
-### 1-1. Cloudflare Tunnel を使った公開（推奨例）
+### 1-1. Cloudflare クイックトンネル（推奨・独自ドメイン不要）
 
-[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) を使うと、ルータのポート開放なしに imgpush を HTTPS で公開できる。**Zero Trust Free プランで運用可能**（Cloudflare Tunnel は無料プランに含まれる）。
+`cloudflared` をコマンドラインで起動するだけで、Cloudflare がランダムな公開HTTPS URLを自動発行する。Cloudflare アカウントや独自ドメインは不要。**Zero Trust Free プランの範囲で利用可能**。
 
-1. Cloudflare ダッシュボードにログインし、左側メニューの「Zero Trust」セクションを開く。
-2. Zero Trust 内の「Networks」>「Tunnels」（または「Access」>「Tunnels」）に移動し、「+ Create a tunnel」を選択する。
-3. トンネルタイプとして「Cloudflared」を選択し、トンネル名（例: `imgpush`）を入力して「Save tunnel」をクリックする。
-4. 表示されたインストールコマンドを使って `cloudflared` をインストールし、トークン付きのコマンドでサービスとして起動する（Windows の場合は管理者権限の PowerShell で実行する）。
-5. 「Public Hostname」タブで以下を設定してトンネルを保存する。
+#### cloudflared のインストール（初回のみ）
+
+Windows では winget でインストールできる。
+
+```powershell
+winget install --id Cloudflare.cloudflared
+```
+
+インストール後、新しい PowerShell で `cloudflared` コマンドが認識されない場合は PATH が通っていない。実行ファイルは通常 `C:\Program Files (x86)\cloudflared\cloudflared.exe` にある。以下のいずれかで対応する。
+
+- フルパスで実行する: `& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://localhost:5100`
+- PATH に恒久追加する（**管理者権限の PowerShell** で実行し、追加後に PowerShell を再起動）:
+
+  ```powershell
+  [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files (x86)\cloudflared", [EnvironmentVariableTarget]::Machine)
+  ```
+
+#### トンネルの起動
+
+imgpush のホストポート（`5100`）に向けてクイックトンネルを起動する。
+
+```powershell
+cloudflared tunnel --url http://localhost:5100
+```
+
+起動ログに以下のような行が表示される。表示された `https://xxxx-xxxx-xxxx.trycloudflare.com` が公開URLである。
+
+```
+Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):
+https://random-words-1234.trycloudflare.com
+```
+
+> **注意**:
+> - このコマンドを実行している PowerShell ウィンドウは**開いたままにする**（閉じるとトンネルが切れる）。
+> - クイックトンネルのURLは起動するたびに変わる。URLが変わったら `IMGPUSH_PUBLIC_BASE_URL` を再設定し、`docker compose restart pipelines` を実行する。
+> - Zero Trust ダッシュボードの「Public Hostname」で `trycloudflare.com` を**手入力しても機能しない**（`trycloudflare.com` は自分で選べず、上記コマンドが自動発行するURLのみ有効）。固定サブドメインが必要な場合は 1-2 を使う。
+
+### 1-2. Cloudflare 名前付きトンネル（独自ドメインで固定URL）
+
+Cloudflare に登録済みの独自ドメイン（例: `example.com`）を持っている場合は、Zero Trust ダッシュボードで名前付きトンネルを作成すると `https://imgpush.example.com` のような固定URLを使える。
+
+1. Cloudflare ダッシュボード >「Zero Trust」>「Networks」>「Tunnels」>「+ Create a tunnel」を選択する。
+2. 「Cloudflared」を選択し、トンネル名（例: `imgpush`）を入力して保存する。
+3. 表示されるコマンドで `cloudflared` をサービスとしてインストール・起動する。
+4. 「Public Hostname」タブで以下を設定して保存する。
 
    | フィールド | 値 |
    |------------|-----|
-   | Subdomain | 任意の文字列（例: `imgpush`） |
-   | Domain | Cloudflare に登録済みのドメイン（またはサブドメインなしで `trycloudflare.com` を使う場合は不要） |
+   | Subdomain | 任意（例: `imgpush`） |
+   | Domain | **登録済みの独自ドメインを選択**（手入力不可。`trycloudflare.com` は選べない） |
    | Type | `HTTP` |
-   | URL | `localhost:5100`（`${IMGPUSH_PORT}` の値） |
+   | URL | `localhost:5100` |
 
-6. 公開URLは手順5で入力したサブドメインとドメインの組み合わせで決まる（`https://{Subdomain}.{Domain}`）。別途確認ページへの移動は不要。例: Subdomain=`imgpush`、Domain=`example.com` であれば `https://imgpush.example.com`。
+5. 公開URLは `https://{Subdomain}.{Domain}`（例: `https://imgpush.example.com`）になる。
 
-### 1-2. ngrok を使った公開（一時的なテスト用）
+### 1-3. ngrok（代替手段）
 
-本番運用には向かないが、動作確認目的には ngrok も使える。
-
-```bash
+```powershell
 ngrok http 5100
 ```
 
-表示された `https://xxxx.ngrok-free.app` を公開ベースURLとして使用する。
+表示された `https://xxxx.ngrok-free.app` を公開URLとして使用する。無料プランではセッションごとにURLが変わるため、変わるたびに `IMGPUSH_PUBLIC_BASE_URL` の再設定と Pipelines コンテナの再起動が必要になる。
 
-> ngrok の無料プランではセッションごとにURLが変わる。`IMGPUSH_PUBLIC_BASE_URL` の再設定と Pipelines コンテナの再起動が毎回必要になる。
+### 1-4. `IMGPUSH_PUBLIC_BASE_URL` の設定
 
-### 1-3. `IMGPUSH_PUBLIC_BASE_URL` の設定
-
-公開URLを確認したら `docker/.env` の `IMGPUSH_PUBLIC_BASE_URL` に設定する（末尾スラッシュなし）。
+公開URLが決まったら `docker/.env` の `IMGPUSH_PUBLIC_BASE_URL` に設定する（末尾スラッシュなし）。
 
 ```
-IMGPUSH_PUBLIC_BASE_URL=https://your-tunnel-domain.example.com
+IMGPUSH_PUBLIC_BASE_URL=https://random-words-1234.trycloudflare.com
 ```
+
+設定後、Pipeline コンテナへ反映するため再起動する（手順4で詳述）。
 
 ## 2. Dify ワークフローのインポート・公開・APIキー発行
 
 ### 2-1. ワークフローのインポート
 
-1. Dify 管理画面（`http://localhost:${DIFY_WEB_PORT}`、既定: `http://localhost:3001`）にログインし、「スタジオ」を開く。
+1. Dify 管理画面（`http://localhost:3001`、`DIFY_WEB_PORT` の既定値）にログインし、「スタジオ」を開く。
 2. 「DSLファイルをインポート」（Import from DSL file）を選択し、リポジトリの `workflows/reverse_image_search.yml` をアップロードする。
 
 ### 2-2. LLM ノードのモデル設定
@@ -122,40 +171,40 @@ IMGPUSH_PUBLIC_BASE_URL=https://your-tunnel-domain.example.com
 
 ## 4. pipelines コンテナの再起動と Open WebUI でのモデル確認
 
-`docker/.env` の設定変更（`IMGPUSH_PUBLIC_BASE_URL`・`DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY`）を `pipelines` コンテナに反映するため、再起動する。
+`docker/.env` の設定変更（`IMGPUSH_PUBLIC_BASE_URL`・`DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY`）を `pipelines` コンテナに反映するため、`docker/` ディレクトリで再起動する。
 
-```bash
+```powershell
 docker compose restart pipelines
 ```
 
-再起動後、以下のコマンドで `reverse_image_search` モデルが Pipelines ランタイムに登録されていることを確認する。
+再起動後、以下のコマンドで `reverse_image_search` モデルが Pipelines ランタイムに登録されていることを確認する（`9099` は `PIPELINES_PORT` の既定値。`0p3n-w3bu!` は Pipelines の既定APIキー）。
 
-```bash
-curl http://localhost:${PIPELINES_PORT}/models
+```powershell
+curl.exe http://localhost:9099/models -H "Authorization: Bearer 0p3n-w3bu!"
 ```
 
-レスポンスの JSON に `"id": "reverse_image_search"` が含まれていれば正常に登録されている。
+レスポンスの JSON に `"id":"reverse_image_search"` が含まれていれば正常に登録されている。
 
 次に、Open WebUI でモデルが選択可能であることを確認する。
 
-1. ブラウザで `http://localhost:${OPEN_WEBUI_PORT}`（既定: `http://localhost:3000`）にアクセスし、Open WebUI にログインする。
+1. ブラウザで `http://localhost:3000`（`OPEN_WEBUI_PORT` の既定値）にアクセスし、Open WebUI にログインする。
 2. チャット画面のモデル選択ドロップダウンに **Reverse Image Search**（モデルID: `reverse_image_search`）が表示されることを確認する。
 
    > Open WebUI の Pipelines 接続が未設定の場合は、`docs/dify-integration-setup.md` の手順4を先に実施すること（API Base URL: `http://pipelines:9099`、API Key: `0p3n-w3bu!`）。すでに設定済みの場合は再設定不要である。
 
 ## 5. imgpush の疎通確認
 
-imgpush サービスが正常に起動し、公開URLからアクセスできることを確認する。
+imgpush サービスが正常に起動し、公開URLからアクセスできることを確認する（imgpush 自体の起動は手順0で実施済みの前提）。
 
 ### 5-1. ヘルスチェック（内部ネットワーク）
 
-ホストから内部ポートへのアクセスで imgpush が起動していることを確認する。
+ホストから内部ポートへのアクセスで imgpush が起動していることを確認する（`5100` は `IMGPUSH_PORT` の既定値）。
 
-```bash
-curl http://localhost:${IMGPUSH_PORT}/liveness
+```powershell
+curl.exe http://localhost:5100/liveness
 ```
 
-`200 OK` が返れば imgpush が正常に起動している。
+`{"status":"ok"}` が返れば imgpush が正常に起動している。
 
 ### 5-2. 画像のアップロードとダウンロード確認
 
@@ -193,10 +242,12 @@ curl.exe -F "file=@.\test.jpg" http://localhost:5100/
 
 まず、トンネルを介さない内部URL（`localhost`）で画像が取得できることを確認する。`aBcDeFgH.jpg` の部分は手順 B で返ってきた実際のファイル名に置き換える。
 
-imgpush の画像エンドポイントは HEAD リクエストを許可していないため、`-I` は使わず、**GETリクエストでステータスコードのみ**を取得する。`-o $null` でレスポンスボディ（画像データ）を捨て、`-w "%{http_code}"` でHTTPステータスコードを表示する。
+imgpush の画像エンドポイントは HEAD リクエストを許可していないため、`-I` は使わず、**GETリクエストでステータスコードのみ**を取得する。`-o NUL` でレスポンスボディ（画像データ）を Windows の null デバイスへ捨て、`-w "%{http_code}"` でHTTPステータスコードを表示する。
+
+> PowerShell で `-o $null` と書くと `$null` が空文字に展開されて失敗するため、必ず Windows の null デバイス名 `NUL` を使うこと。
 
 ```powershell
-curl.exe -s -o $null -w "%{http_code}" http://localhost:5100/aBcDeFgH.jpg
+curl.exe -s -o NUL -w "%{http_code}" http://localhost:5100/aBcDeFgH.jpg
 ```
 
 `200` が返れば、imgpush への保存と取得は正常である。
@@ -206,10 +257,10 @@ curl.exe -s -o $null -w "%{http_code}" http://localhost:5100/aBcDeFgH.jpg
 次に、SerpAPI が実際にアクセスする公開URL（`IMGPUSH_PUBLIC_BASE_URL` + ファイル名）で画像が取得できることを確認する。`https://your-tunnel-domain.example.com` の部分は手順1で設定した実際の公開ベースURLに置き換える。
 
 ```powershell
-curl.exe -s -o $null -w "%{http_code}" https://your-tunnel-domain.example.com/aBcDeFgH.jpg
+curl.exe -s -o NUL -w "%{http_code}" https://your-tunnel-domain.example.com/aBcDeFgH.jpg
 ```
 
-`200` が返れば、SerpAPI からも到達可能な状態になっている。
+`200` が返れば、SerpAPI からも到達可能な状態になっている。`000` が返る場合は、URLのホスト名が DNS 解決できていない（公開URLが間違っている／トンネルが起動していない）。手順1で発行された正しい公開URLを使っているか、トンネル用の PowerShell ウィンドウが開いたままかを確認すること。
 
 > 手順 C は成功するが手順 D が `200` 以外（タイムアウト・404・502 等）になる場合は、imgpush 自体は正常で、手順1のトンネル設定（公開URLの向き先が `localhost:5100` になっているか）に問題がある。手順1を再確認すること。
 
