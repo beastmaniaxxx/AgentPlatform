@@ -159,32 +159,59 @@ curl http://localhost:${IMGPUSH_PORT}/liveness
 
 ### 5-2. 画像のアップロードとダウンロード確認
 
-サンプル画像をアップロードし、`filename` フィールドから公開URLでアクセスできることを確認する。
+任意の画像ファイル（JPG または PNG、なんでもよい）を1つ用意し、imgpush にアップロードして、返ってきた `filename` で画像が取得できることを確認する。
 
-```bash
-# 1×1 ピクセルの PNG をアップロード
-curl -F "file=@/dev/stdin;filename=test.png;type=image/png" \
-     http://localhost:${IMGPUSH_PORT}/ \
-     < /dev/zero | head -c 67 | base64 -d | head -c 0
+> 以下は **Windows PowerShell** での実行例である。PowerShell では `curl` がエイリアスとして別コマンド（`Invoke-WebRequest`）に割り当てられているため、必ず `curl.exe` と明示的に拡張子付きで実行すること。
+
+#### 手順 A: テスト画像を用意する
+
+手元にある画像ファイルのフルパスを確認する。新規に用意する場合は、例えば `docker/` フォルダ直下に `test.jpg` という名前で画像を1つ置く。以下の例では `test.jpg` をこのフォルダに置いた前提で記載する。
+
+```powershell
+# 例: カレントディレクトリ（docker/）に test.jpg がある場合のフルパス確認
+Resolve-Path .\test.jpg
 ```
 
-実際には任意の画像ファイルを使って確認する。
+#### 手順 B: imgpush にアップロードする
 
-```bash
-# 例: test.jpg をアップロード
-curl -F "file=@test.jpg" http://localhost:${IMGPUSH_PORT}/
-# 応答例: {"filename": "aBcDeFgH.jpg"}
+`curl.exe` の `-F` オプションで画像をアップロードする。`@` の後にはアップロードする画像ファイルのパスを指定する（フルパスでも、カレントディレクトリからの相対パスでもよい）。
+
+```powershell
+# .\test.jpg をアップロード（5100 は IMGPUSH_PORT の既定値）
+curl.exe -F "file=@.\test.jpg" http://localhost:5100/
 ```
 
-応答の `filename` を使って公開URLで画像が取得できることを確認する。
+成功すると、以下のように保存されたファイル名が JSON で返る。
 
-```bash
-# 公開URLからダウンロード確認
-curl -I ${IMGPUSH_PUBLIC_BASE_URL}/aBcDeFgH.jpg
-# HTTP/2 200 が返れば SerpAPI からも到達可能
+```json
+{"filename": "aBcDeFgH.jpg"}
 ```
 
-> 公開URLへのアクセスが `200` でなければ、手順1のトンネル設定を再確認すること。
+この `filename` の値（上記例では `aBcDeFgH.jpg`）を次の手順で使う。
+
+#### 手順 C: 内部URLでダウンロードできることを確認する
+
+まず、トンネルを介さない内部URL（`localhost`）で画像が取得できることを確認する。`aBcDeFgH.jpg` の部分は手順 B で返ってきた実際のファイル名に置き換える。
+
+imgpush の画像エンドポイントは HEAD リクエストを許可していないため、`-I` は使わず、**GETリクエストでステータスコードのみ**を取得する。`-o $null` でレスポンスボディ（画像データ）を捨て、`-w "%{http_code}"` でHTTPステータスコードを表示する。
+
+```powershell
+curl.exe -s -o $null -w "%{http_code}" http://localhost:5100/aBcDeFgH.jpg
+```
+
+`200` が返れば、imgpush への保存と取得は正常である。
+
+#### 手順 D: 公開URLでダウンロードできることを確認する
+
+次に、SerpAPI が実際にアクセスする公開URL（`IMGPUSH_PUBLIC_BASE_URL` + ファイル名）で画像が取得できることを確認する。`https://your-tunnel-domain.example.com` の部分は手順1で設定した実際の公開ベースURLに置き換える。
+
+```powershell
+curl.exe -s -o $null -w "%{http_code}" https://your-tunnel-domain.example.com/aBcDeFgH.jpg
+```
+
+`200` が返れば、SerpAPI からも到達可能な状態になっている。
+
+> 手順 C は成功するが手順 D が `200` 以外（タイムアウト・404・502 等）になる場合は、imgpush 自体は正常で、手順1のトンネル設定（公開URLの向き先が `localhost:5100` になっているか）に問題がある。手順1を再確認すること。
 
 ### 5-3. 動作確認チェックリスト
 
