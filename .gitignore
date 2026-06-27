@@ -18,3 +18,5 @@ __pycache__/
 .pytest_cache/
 # pipelinesコンテナが起動時にパイプラインごとに生成するvalves設定ディレクトリ
 pipelines/*/valves.json
+# pipelinesコンテナがロードに失敗したファイルを移動するディレクトリ（ランタイム成果物）
+pipelines/failed/

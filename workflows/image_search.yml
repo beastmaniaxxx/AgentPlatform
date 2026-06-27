@@ -1,0 +1,256 @@
+app:
+  description: |-
+    ユーザーのキーワードをSearXNGの画像検索カテゴリで検索し、結果をMarkdown形式（![](url)）でチャット内に表示するワークフロー。
+    検索結果が0件の場合は再検索を促すメッセージを返す。
+    img_srcが欠落している結果は表示対象から除外する。
+  icon: 🖼️
+  icon_background: '#EFF1F5'
+  mode: advanced-chat
+  name: image_search
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods:
+      - local_file
+      enabled: false
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: http-request
+      id: start-source-searxng-target
+      source: start
+      sourceHandle: source
+      target: searxng_images
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: searxng-source-format-target
+      source: searxng_images
+      sourceHandle: source
+      target: format_images
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: format-source-check-target
+      source: format_images
+      sourceHandle: source
+      target: check_count
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: answer
+      id: check-true-no-results-target
+      source: check_count
+      sourceHandle: case_0_results
+      target: answer_no_results
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: answer
+      id: check-false-images-target
+      source: check_count
+      sourceHandle: 'false'
+      target: answer_images
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables: []
+      height: 54
+      id: start
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: ''
+          type: none
+        desc: SearXNGの画像検索APIを呼び出す。ユーザー識別情報は付与しない。
+        headers: ''
+        method: GET
+        params: ''
+        selected: false
+        timeout:
+          connect: 60
+          read: 60
+          write: 20
+        title: SearXNG画像検索
+        type: http-request
+        url: 'http://searxng:8080/search?format=json&categories=images&q={{#sys.query#}}'
+        variables: []
+      height: 126
+      id: searxng_images
+      position:
+        x: 384
+        y: 282
+      positionAbsolute:
+        x: 384
+        y: 282
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(body: str) -> dict:\n    data = json.loads(body)\n\
+          \    results = data.get(\"results\", [])\n    images = []\n    for r in results:\n\
+          \        img_src = r.get(\"img_src\", \"\")\n        if img_src:\n        \
+          \    images.append(f\"![]({img_src})\")\n    count = len(images)\n    markdown\
+          \ = \"\\n\\n\".join(images)\n    return {\n        \"count\": count,\n  \
+          \      \"markdown\": markdown\n    }\n"
+        code_language: python3
+        desc: 画像検索結果からimg_srcを抽出し、Markdown形式に整形する。img_srcが欠落した結果はスキップする。
+        outputs:
+          count:
+            children: null
+            type: number
+          markdown:
+            children: null
+            type: string
+        selected: false
+        title: 画像整形
+        type: code
+        variables:
+        - value_selector:
+          - searxng_images
+          - body
+          variable: body
+      height: 126
+      id: format_images
+      position:
+        x: 688
+        y: 282
+      positionAbsolute:
+        x: 688
+        y: 282
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: case_0_results
+          conditions:
+          - comparison_operator: '='
+            id: cond_count_zero
+            value: '0'
+            varType: number
+            variable_selector:
+            - format_images
+            - count
+          id: case_0_results
+          logical_operator: and
+        desc: 有効な画像が0件かどうかを判定する。
+        selected: false
+        title: 結果件数チェック
+        type: if-else
+      height: 126
+      id: check_count
+      position:
+        x: 992
+        y: 282
+      positionAbsolute:
+        x: 992
+        y: 282
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#format_images.markdown#}}'
+        desc: ''
+        selected: false
+        title: 画像一覧回答
+        type: answer
+        variables: []
+      height: 105
+      id: answer_images
+      position:
+        x: 1296
+        y: 182
+      positionAbsolute:
+        x: 1296
+        y: 182
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: |-
+          「{{#sys.query#}}」の画像検索結果が見つかりませんでした。
+
+          別のキーワードや表現で再度検索してみてください。
+        desc: ''
+        selected: false
+        title: 0件通知
+        type: answer
+        variables: []
+      height: 105
+      id: answer_no_results
+      position:
+        x: 1296
+        y: 382
+      positionAbsolute:
+        x: 1296
+        y: 382
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.75
