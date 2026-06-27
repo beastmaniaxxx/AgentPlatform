@@ -19,8 +19,8 @@
 
 1. Dify管理画面（`http://localhost:${DIFY_WEB_PORT}`、既定: `http://localhost:3001`）にログインし、「スタジオ」を開く。
 2. 「DSLファイルをインポート」（Import from DSL file）を選択し、リポジトリの `workflows/web_search.yml` をアップロードする。
-3. インポートされた「web_search」アプリを開き、ワークフローエディタで **「LLM」ノード** を選択する。
-4. LLMノードの「モデル」フィールドに、Difyに追加済みのOllamaモデル（`docs/dify-integration-setup.md` 手順2で追加したモデル）を設定する。
+3. インポートされた「web_search」アプリを開き、ワークフローエディタで **「要約生成」ノード**（LLMノード。画面に全ノードが表示されない場合は「画面に合わせる」ボタンやズームアウトで全体を表示する）を選択する。
+4. 「要約生成」ノードの「モデル」フィールドに、Difyに追加済みのOllamaモデル（`docs/dify-integration-setup.md` 手順2で追加したモデル）を設定する。
 
    > **重要**: モデルが未設定のまま公開するとワークフロー実行時にエラーになる。必ずOllamaモデルを設定してから公開すること。
 
