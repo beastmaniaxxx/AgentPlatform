@@ -3,8 +3,7 @@ import base64
 import pytest
 import requests
 
-from image_uploader import ImgpushUploader
-from reverse_image_search_bridge import DifyChatBridge, Pipeline, _PRIVACY_NOTICE
+from reverse_image_search_bridge import ImgpushUploader, DifyChatBridge, Pipeline, _PRIVACY_NOTICE
 
 FAKE_IMAGE_B64 = base64.b64encode(b"fakeimagedata").decode()
 FAKE_IMAGE_DATA_URI = f"data:image/jpeg;base64,{FAKE_IMAGE_B64}"

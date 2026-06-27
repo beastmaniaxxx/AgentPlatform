@@ -13,7 +13,29 @@ from typing import Optional
 import requests
 from pydantic import BaseModel
 
-from image_uploader import ImgpushUploader
+
+class ImgpushUploader:
+    def __init__(self, internal_url: str, public_base_url: str, timeout: int) -> None:
+        self._internal_url = internal_url.rstrip("/")
+        self._public_base_url = public_base_url
+        self._timeout = timeout
+
+    def upload(self, image_bytes: bytes, mime_type: str) -> str:
+        if not (self._public_base_url or "").strip():
+            raise ValueError(
+                "IMGPUSH_PUBLIC_BASE_URL が未設定です。"
+                "imgpushを公開到達可能にした後、公開ベースURLを設定してください。"
+            )
+        response = requests.post(
+            f"{self._internal_url}/",
+            files={"file": ("upload", image_bytes, mime_type)},
+            timeout=self._timeout,
+        )
+        response.raise_for_status()
+        filename = response.json()["filename"]
+        base = self._public_base_url.rstrip("/")
+        return f"{base}/{filename}"
+
 
 _PRIVACY_NOTICE = (
     "⚠️ **プライバシー通知**: アップロードされた画像は一時的に外部から参照可能なURLとして公開され、"
@@ -107,11 +129,6 @@ class Pipeline:
 
     @staticmethod
     def _extract_image(messages: list) -> Optional[dict]:
-        """直近のメッセージから最初の画像（data URI）を抽出する。
-
-        Returns: {"bytes": ..., "mime_type": ...} または None（画像なし）
-        Raises: ValueError: data URI のデコードに失敗した場合
-        """
         if not messages:
             return None
         content = messages[-1].get("content")
