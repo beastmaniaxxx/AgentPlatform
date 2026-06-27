@@ -37,7 +37,7 @@
 - [x] dify-integration -- DifyとOpen WebUIのPipeline中継基盤構築。Dependencies: infrastructure
 - [x] web-search -- SearXNG経由のワード検索・画像検索（要約＋引用付き回答、画像Markdown表示）。Dependencies: infrastructure, dify-integration
 - [ ] image-generation -- ComfyUIによるテキスト→画像生成（ControlNetによるポーズ制御含む）。Dependencies: dify-integration
-- [ ] reverse-image-search -- imgpush + SerpAPI（Google Lens）による逆画像検索。Dependencies: dify-integration
+- [x] reverse-image-search -- imgpush + SerpAPI（Google Lens）による逆画像検索。Dependencies: dify-integration
 - [ ] instagram-search -- Instagram Graph APIによるハッシュタグ画像検索。Dependencies: dify-integration
 - [ ] multimodal-rag -- Difyナレッジベースによるストレージ内マルチモーダル検索（逆画像検索のフォールバック先）。Dependencies: dify-integration, reverse-image-search
 - [ ] video-generation -- ComfyUIによるテキスト→動画生成。Dependencies: image-generation
