@@ -98,9 +98,12 @@ graph TB
 ### Directory Structure
 ```
 pipelines/
-├── _dify_search_bridge.py      # 新規: WebSearchBridge/ImageSearchBridgeが共有するDify中継ヘルパー
 ├── web_search_bridge.py        # 新規: web_searchワークフロー用Pipeline（モデルID: web_search）
-└── image_search_bridge.py      # 新規: image_searchワークフロー用Pipeline（モデルID: image_search）
+│                               #   ※ DifyChatBridgeをインライン定義（ランタイム制約により共有ファイルからのimport不可）
+├── image_search_bridge.py      # 新規: image_searchワークフロー用Pipeline（モデルID: image_search）
+│                               #   ※ DifyChatBridgeをインライン定義（同上）
+└── tests/
+    └── _dify_search_bridge.py  # 新規: DifyChatBridgeのテスト専用リファレンス実装（本番コードからは参照しない）
 
 workflows/
 ├── web_search.yml               # 新規: ワード検索ワークフロー（要約・引用元URL付き応答、0件分岐）
@@ -245,7 +248,7 @@ sequenceDiagram
 | POST | /v1/chat-messages（Dify標準、`web_search` App） | `{query, response_mode: blocking, user}` | `{answer}`（要約+引用元URL、または0件時の通知文） | Dify標準のワークフロー実行エラー応答 |
 
 **Implementation Notes**
-- Integration: SearXNGへのリクエストURLは`docker/.env.example`の`SEARXNG_BASE_URL`をDify環境変数として登録し参照する
+- Integration: SearXNGへのリクエストURLはDify DSL内に`http://searxng:8080`としてハードコードしている（`docker-compose.yml`のサービス名・ポートに固定）。Dify環境変数経由の参照は実装の複雑度が上がるため採用しなかった。サービス名・ポートを変更する場合はDSLの再インポートが必要。
 - Validation: SearXNGのモック/実応答に対し、上位5件抽出・要約・0件分岐の各経路をDifyのデバッグ実行で確認する（Requirement 1.1-1.3, 1.5）
 - Risks: 検索エンジン側のレスポンス構造変化により`results`配列のキー（`title`/`url`/`content`）が変わる可能性。Code nodeでキー欠落時のデフォルト値処理を行う
 
@@ -274,7 +277,7 @@ sequenceDiagram
 | POST | /v1/chat-messages（Dify標準、`image_search` App） | `{query, response_mode: blocking, user}` | `{answer}`（Markdown画像一覧、または0件時の通知文） | Dify標準のワークフロー実行エラー応答 |
 
 **Implementation Notes**
-- Integration: SearXNGへのリクエストURLは`docker/.env.example`の`SEARXNG_BASE_URL`をDify環境変数として登録し参照する
+- Integration: SearXNGへのリクエストURLはDify DSL内に`http://searxng:8080`としてハードコードしている（web_search.ymlと同方針）。
 - Validation: SearXNGのモック/実応答に対し、Markdown整形・0件分岐の各経路をDifyのデバッグ実行で確認する（Requirement 2.1-2.3, 2.5）
 - Risks: SearXNGの画像検索結果に`img_src`が含まれないエンジンが混在する場合、Code nodeで該当結果をスキップするフォールバックが必要
 

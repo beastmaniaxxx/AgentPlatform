@@ -13,9 +13,10 @@
   - _Requirements: 1.1, 1.5, 2.1, 2.5_
 
 - [x] 1.3 Dify中継共有ヘルパーの実装
-  - `pipelines/_dify_search_bridge.py`に`DifyChatBridge`クラスを実装し、`ask(query, user_id)`が`POST /v1/chat-messages`（テキストクエリのみ、`response_mode: blocking`）を呼び出して`answer`を返す
+  - `DifyChatBridge`クラスを実装し、`ask(query, user_id)`が`POST /v1/chat-messages`（テキストクエリのみ、`response_mode: blocking`）を呼び出して`answer`を返す
   - 接続エラー・タイムアウト・非2xx応答時は`requests.exceptions.RequestException`を発生させ、エラーメッセージへの変換は呼び出し元（各Pipeline）に委ねる
   - `dify_bridge.py`の`_resolve_user_id`と同様のユーザー識別子解決ロジックを実装する
+  - **実装上の注意**: Open WebUI Pipelinesランタイムは各`.py`ファイルを`importlib`で孤立ロードするため、top-levelディレクトリ内でのcross-file importが機能しない（`ModuleNotFoundError`により`Pipeline`クラスが定義される前にファイルが`failed/`に移動される）。このため`DifyChatBridge`は`web_search_bridge.py`・`image_search_bridge.py`にそれぞれインライン化した。テスト専用のリファレンス実装として`pipelines/tests/_dify_search_bridge.py`を配置している。
   - 観測可能完了: モックしたDify応答に対し`DifyChatBridge.ask()`が`answer`の値を返すこと、接続エラーをシミュレートした場合に`RequestException`が発生することをユニットテストで確認できる
   - _Requirements: 1.4, 2.4_
 

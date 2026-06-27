@@ -2,6 +2,8 @@
 
 `web-search` Specで追加したワード検索（`web_search`）・画像検索（`image_search`）機能のセットアップ手順をまとめる。本手順は、`docs/dify-integration-setup.md` のセットアップが完了し、全サービスが`docker compose up -d`で起動済みであることを前提とする。
 
+> **画像検索の挙動に関する注意**: 画像検索結果はSearXNG経由で取得した外部サイトの画像URLをMarkdown形式でチャットに返す。Open WebUIでこれらの画像を表示する際、ユーザーのブラウザが各画像の外部ホストへ直接HTTPリクエストを送信する（IPアドレス・User-Agent等が外部サーバーに到達する）。SearXNG経由の検索クエリ自体は匿名だが、画像の表示段階では匿名性が保たれないことに留意すること。
+
 対象環境: `docker/.env`の以下の変数を使用する。
 
 | 変数 | 用途 |
@@ -12,6 +14,7 @@
 | `SEARXNG_PORT` | SearXNGのホスト公開ポート（既定: `8080`） |
 | `DIFY_WEB_SEARCH_APP_API_KEY` | ワード検索ワークフロー（`web_search`）のアプリAPIキーを設定する変数 |
 | `DIFY_IMAGE_SEARCH_APP_API_KEY` | 画像検索ワークフロー（`image_search`）のアプリAPIキーを設定する変数 |
+| `REQUEST_TIMEOUT_SECONDS` | DifyワークフローへのHTTPリクエストタイムアウト秒数（既定: `60`）。LLMノードを含む`web_search`ではモデルの推論時間に応じて延長が必要になる場合がある |
 
 ## 1. Difyワークフローのインポート・公開・APIキー発行
 
