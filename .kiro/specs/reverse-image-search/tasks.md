@@ -20,7 +20,7 @@
   - _Requirements: 1.1, 4.3_
   - _Boundary: ImgpushUploader_
 
-- [ ] 2. Core: 逆画像検索ワークフローとPipelineの実装
+- [x] 2. Core: 逆画像検索ワークフローとPipelineの実装
 - [x] 2.1 (P) reverse_image_searchワークフローの作成
   - `workflows/reverse_image_search.yml`に、Start→HTTP Request（SerpAPI `engine={{#env.REVERSE_IMAGE_ENGINE#}}`、`url`/`image_url`両方に`{{#sys.query#}}`、`api_key={{#env.SERPAPI_KEY#}}`を`params`で構成）→Code（`REVERSE_IMAGE_ENGINE`に応じて`visual_matches`/`image_results`・`inline_images`/Yandex類似画像配列を共通形式`{title, link, source, thumbnail}`へ正規化し、上位5件の`![](thumbnail)`形式Markdownと件数を算出、`thumbnail`欠落項目はスキップ、`error`検出時は0件相当）→If-Else（0件分岐）→LLM（要約・`[出典: source](link)`付与）/Answer（0件時の再検索を促す通知文）→Answer（Markdown画像＋出典＋要約）という構成のDify advanced-chat DSLを作成する
   - `SERPAPI_KEY`はSecret環境変数として参照しDSL・`docker/.env`に値を置かない。SerpAPIへのリクエストにユーザー識別情報を含めない。正規化以降のノードはエンジン非依存に保つ
