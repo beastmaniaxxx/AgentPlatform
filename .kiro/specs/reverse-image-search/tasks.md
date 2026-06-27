@@ -28,7 +28,7 @@
   - _Requirements: 1.2, 2.1, 2.2, 2.3, 4.2, 4.3_
   - _Boundary: ReverseImageSearch Workflow_
 
-- [ ] 2.2 (P) ReverseImageSearch Pipelineの実装
+- [x] 2.2 (P) ReverseImageSearch Pipelineの実装
   - `pipelines/reverse_image_search_bridge.py`に`Pipeline`クラス（`self.id = "reverse_image_search"`、`Valves`に`DIFY_API_BASE_URL`・`DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY`・`IMGPUSH_INTERNAL_URL`・`IMGPUSH_PUBLIC_BASE_URL`・`REQUEST_TIMEOUT_SECONDS`）を実装する。`pipe()`は直近メッセージから画像（`image_url` data URI）を抽出し、`ImgpushUploader.upload()`で公開URLを取得後、`DifyChatBridge.ask(query=公開URL, user_id)`でワークフローへ中継する
   - 画像を検知して外部処理へ進む全経路（成功/0件/エラー）で固定のプライバシー通知文を応答先頭に前置する（同意操作なし・非ブロッキング）。画像未検出時はimgpush/Difyを呼ばず画像添付を促すメッセージを返す。`ValueError`（公開URL未設定/画像デコード不正）・`requests.exceptions.RequestException`（imgpush/Dify接続失敗）を捕捉し、例外を再raiseせず通知＋エラーメッセージ文字列を返す。imgpush/SerpAPIへユーザー識別情報を付与しない
   - 観測可能完了: `docker compose restart pipelines`後、`curl http://127.0.0.1:${PIPELINES_PORT}/models`のレスポンスに`reverse_image_search`が含まれる。モックで(a)画像→`upload`と`ask`呼び出し＋通知前置、(b)画像なし→添付促し（imgpush/Dify未呼び出し）、(c)imgpush/Dify例外→通知＋エラーメッセージ文字列、をユニットテストで確認できる
