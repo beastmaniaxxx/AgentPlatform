@@ -61,11 +61,7 @@ class DifyChatBridge:
             },
             timeout=self._timeout,
         )
-        if not response.ok:
-            raise requests.exceptions.HTTPError(
-                f"{response.status_code} {response.reason} — {response.text}",
-                response=response,
-            )
+        response.raise_for_status()
         return response.json().get("answer", "")
 
     @staticmethod
