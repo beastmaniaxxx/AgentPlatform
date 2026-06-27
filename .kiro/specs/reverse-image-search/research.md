@@ -22,7 +22,25 @@
   - Google Lens は AWS S3 のURLで取得に難があると報告されており、Imgur等の単純な画像ホストが推奨される。imgpush（単純な静的配信）は要件に適合する。
 - **Implications**:
   - imgpush の導入は必須。かつ imgpush は SerpAPI（公開インターネット）から到達できる必要があり、本Specは「公開ベースURL（`IMGPUSH_PUBLIC_BASE_URL`）の受領とURL組み立て・受け渡し契約」を所有し、トンネル/リバースプロキシ等の公開到達手段の構築自体は境界外（オペレーター責務）とする。
-  - 採用エンジンは `google_lens`（現行API、`visual_matches` にサムネイル・タイトル・出典・リンクを含み要件2.1-2.3に適合）。`google_reverse_image` はレガシーのため不採用。
+  - 既定エンジンは `google_lens`（現行API、`visual_matches` にサムネイル・タイトル・出典・リンクを含み要件2.1-2.3に適合）。`google_reverse_image`（レガシー）は不採用。設定切替で `yandex_images`・`bing_reverse_image` も選択可能（後述の追加調査参照）。
+
+### SerpAPI の他エンジン（Yandex / Bing）逆画像検索対応
+- **Context**: google_lens 以外（Yandex Reverse Image / Bing Reverse Image）への対応可否と、本設計の拡張性。
+- **Sources Consulted**:
+  - SerpApi Yandex Reverse Image API（https://serpapi.com/yandex-reverse-image-api）
+  - SerpApi Bing Reverse Image API（https://serpapi.com/bing-reverse-image-api）
+- **Findings**:
+  - 3エンジンとも**公開URL必須・直接アップロード非対応**で、画像入力モデルは共通。差分は (1) `engine` 名、(2) 画像URLパラメータ名、(3) 応答スキーマ。
+
+    | エンジン | engine | 画像URLパラメータ | 応答配列 |
+    |---|---|---|---|
+    | Google Lens | `google_lens` | `url` | `visual_matches` |
+    | Yandex Reverse | `yandex_images` | `url`（`crop`/`tab=about\|similar` 任意） | 類似画像配列 |
+    | Bing Reverse | `bing_reverse_image` | `image_url`（`results_per_page` 既定35、画像は各辺4000px以下） | `image_results`/`inline_images` |
+- **Implications**:
+  - 公開URL供給層（imgpush + `ImgpushUploader` + Pipeline）は**エンジン非依存**で3エンジン共通に再利用可能。
+  - エンジン固有差分はDifyワークフローのHTTPノード（engine/パラメータ名）と正規化Codeノード（応答パース）に局所化される。下流（0件分岐/LLM/Answer）はエンジン非依存。
+  - 設定切替（`REVERSE_IMAGE_ENGINE`）で単一アクティブエンジンを選択する方式を採用（下記 Design Decision 参照）。
 
 ### imgpush の API・設定・運用特性
 - **Context**: imgpush をどう docker-compose に組み込み、Pipelineからどう呼び出すか。
@@ -84,6 +102,17 @@
 - **Rationale**: 成功/0件/エラーいずれの応答でも通知が表示され、通知の出力位置が一意に定まる。ワークフローは結果整形に専念できる。
 - **Trade-offs**: 通知文がPipeline側に固定化される（多言語化はui-customization Specで横断調整余地）。
 
+### Decision: SerpAPIエンジンを設定で切替可能にする（normalize-in-Code パターン）
+- **Context**: Yandex/Bingの逆画像検索にも対応したいが、3エンジンは応答スキーマと画像URLパラメータ名が異なる。一方で公開URL供給層は共通。
+- **Alternatives Considered**:
+  1. `google_lens` 単一固定（最小だが他エンジン非対応）
+  2. 設定（Dify環境変数）で単一アクティブエンジンを切替（採用）
+  3. 複数エンジンのフォールバック連鎖/結果統合（網羅性は高いがSerpAPI検索回数が倍増、設計・タスク大幅増）
+- **Selected Approach**: Dify環境変数 `REVERSE_IMAGE_ENGINE`（既定 `google_lens`、許容値 `google_lens`/`yandex_images`/`bing_reverse_image`）でアクティブエンジンを選択。HTTPノードは `engine` を設定値から取り、画像URLは `url`/`image_url` 両方に同値を送る。正規化Codeノードがエンジン別応答を共通形式 `{title, link, source, thumbnail}` に変換し、後段ノードをエンジン非依存に保つ。
+- **Rationale**: 実装の難所（公開URL供給）は3エンジン共通で再利用でき、差分をワークフロー1ファイル（HTTP＋Codeノード）に局所化できる。コード編集なしの設定切替で運用が容易。フォールバックの倍増コストを避ける。
+- **Trade-offs**: 一度に1エンジンのみ（同時実行・統合は非対応）。エンジンごとの応答スキーマ差をCodeノードで吸収する保守コストが生じる。`url`/`image_url` 同時送信は余剰パラメータがエンジン側で無視される前提（実装時検証）。
+- **Follow-up**: 各エンジンの実応答キーを実装時に確定し正規化マッピングを固定。エンジン追加時はHTTP/Codeノードのみ変更。セットアップ手順に `REVERSE_IMAGE_ENGINE` の設定方法と各エンジンの無料枠/制約を記載。
+
 ## Risks & Mitigations
 - **imgpush公開到達性の未設定** — `IMGPUSH_PUBLIC_BASE_URL` 未設定/到達不可時はPipelineが明示的なエラーメッセージを返し、手順書で公開設定を案内する。
 - **SerpAPI無料枠（月100検索）超過** — 超過時のSerpAPIエラーをCodeノードで0件相当または明示エラーとして扱い、ユーザーに分かるメッセージを返す。利用上限はセットアップ手順に明記。
@@ -92,10 +121,13 @@
 - **imgpush画像の蓄積（プライバシー）** — 自動失効しないため、定期削除は運用フォローアップ（本Spec境界外）。手順書に注意を記載。
 - **NUDE_FILTER誤検知** — 正当画像の拒否可能性。閾値調整/無効化をセットアップ手順で案内。
 - **Pipeline間ヘルパーのimport** — `image_uploader.py` を `reverse_image_search_bridge.py` から import する構成が pipelines ランタイムで解決されることを起動時に検証。
+- **エンジン別応答スキーマの差異・変化** — `REVERSE_IMAGE_ENGINE` の各値（google_lens/yandex_images/bing_reverse_image）で正規化Codeノードが共通形式に変換できることを実応答で検証。`url`/`image_url` 同時送信を各エンジンが無視するか確認し、拒否される場合はエンジン別にパラメータを分岐。
 
 ## References
 - [SerpApi Google Lens API](https://serpapi.com/google-lens-api) — 公開URL必須・`visual_matches` 構造
 - [Uploading Images and Searching with Google Lens via SerpApi](https://serpapi.com/blog/uploading-images-and-searching-with-google-lens-via-serpapi/) — 直接アップロード非対応、公開URL前提のワークフロー
 - [SerpApi Google Reverse Image API](https://serpapi.com/google-reverse-image) — レガシーエンジン（不採用）
+- [SerpApi Yandex Reverse Image API](https://serpapi.com/yandex-reverse-image-api) — `engine=yandex_images`・`url`・`crop`/`tab`
+- [SerpApi Bing Reverse Image API](https://serpapi.com/bing-reverse-image-api) — `engine=bing_reverse_image`・`image_url`・4000px制約
 - [hauxir/imgpush](https://github.com/hauxir/imgpush) — API・環境変数仕様
 - 既存実装: `workflows/web_search.yml`, `pipelines/web_search_bridge.py`, `pipelines/dify_bridge.py`, `docker/docker-compose.yml`
