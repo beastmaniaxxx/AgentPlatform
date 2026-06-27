@@ -13,7 +13,7 @@
   - _Requirements: 1.1_
   - _Boundary: imgpush Service_
 
-- [ ] 1.3 画像アップロードヘルパー（ImgpushUploader）の実装
+- [x] 1.3 画像アップロードヘルパー（ImgpushUploader）の実装
   - `pipelines/image_uploader.py`に`ImgpushUploader`クラスを実装し、`upload(image_bytes, mime_type)`がimgpushの`POST /`（multipart、フィールド名`file`）を呼び出して応答`{"filename": ...}`と公開ベースURLから公開URL`f"{base}/{filename}"`（末尾スラッシュ正規化）を組み立てて返す
   - 公開ベースURLが空の場合は`ValueError`、imgpush接続・タイムアウト・非2xxは`requests.exceptions.RequestException`を送出し、エラーメッセージへの変換は呼び出し元に委ねる。imgpushへユーザー識別情報を付与しない。Open WebUIメッセージ形式には依存しない（入力は画像バイトとMIMEのみ）
   - 観測可能完了: モックしたimgpush応答`{"filename": "abc.jpg"}`に対し`upload()`が`<base>/abc.jpg`を返すこと、公開ベースURL空で`ValueError`、接続エラーで`RequestException`を送出することをユニットテストで確認できる
