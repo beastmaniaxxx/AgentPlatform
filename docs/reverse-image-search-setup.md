@@ -40,7 +40,7 @@ SerpAPI は公開URLにアクセスして逆画像検索を実行する。`local
    | Type | `HTTP` |
    | URL | `localhost:5100`（`${IMGPUSH_PORT}` の値） |
 
-6. 設定したサブドメインとドメインから公開URL（例: `https://imgpush.example.com`）を確認する。
+6. 公開URLは手順5で入力したサブドメインとドメインの組み合わせで決まる（`https://{Subdomain}.{Domain}`）。別途確認ページへの移動は不要。例: Subdomain=`imgpush`、Domain=`example.com` であれば `https://imgpush.example.com`。
 
 ### 1-2. ngrok を使った公開（一時的なテスト用）
 
