@@ -54,3 +54,6 @@
   - 観測可能完了: `yandex_images`・`bing_reverse_image`の各設定で、コード編集なしに切替えた結果が共通形式で表示される（少なくとも1件以上の結果表示と0件通知の双方を確認）
   - _Requirements: 1.2, 2.1, 2.2, 2.3, 4.2_
   - _Depends: 3.1_
+
+## Implementation Notes
+- タスク1.3: `pipelines/image_uploader.py` を独立ファイルとして配置する計画だったが、Open WebUI Pipelinesランタイムが各ファイルを分離してロードする制約（クロスファイルimport不可）により、`ImgpushUploader` を `reverse_image_search_bridge.py` へ直接インライン化した。テスト用の参照実装は `pipelines/tests/image_uploader.py` に保持しているが、テストのimport元は本番実装（`reverse_image_search_bridge`）を参照するよう統一している。

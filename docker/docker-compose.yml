@@ -328,7 +328,7 @@ services:
       - "127.0.0.1:${DIFY_WEB_PORT}:3000"
 
   imgpush:
-    image: hauxir/imgpush:latest
+    image: hauxir/imgpush@sha256:46bf9c2b4fd3be05c3d3470e0dd480399fb69a1e9631a095e25edd3de655c962
     networks:
       - agentplatform-net
     ports:

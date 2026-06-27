@@ -143,6 +143,9 @@ class Pipeline:
 
     @staticmethod
     def _decode_data_uri(data_uri: str) -> dict:
-        header, _, encoded = data_uri.partition(",")
-        mime_type = header[len("data:"):].split(";")[0] or "application/octet-stream"
-        return {"bytes": base64.b64decode(encoded), "mime_type": mime_type}
+        try:
+            header, _, encoded = data_uri.partition(",")
+            mime_type = header[len("data:"):].split(";")[0] or "application/octet-stream"
+            return {"bytes": base64.b64decode(encoded), "mime_type": mime_type}
+        except Exception as exc:
+            raise ValueError(f"data URI のデコードに失敗しました: {exc}") from exc

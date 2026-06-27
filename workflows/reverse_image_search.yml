@@ -38,7 +38,7 @@ workflow:
     selector:
     - env
     - REVERSE_IMAGE_ENGINE
-    value: bing_reverse_image
+    value: google_lens
     value_type: string
   - description: ''
     id: 2f036a04-8c32-4cea-a9d9-71a420194c9a

@@ -3,7 +3,7 @@ import io
 import pytest
 import requests
 
-from image_uploader import ImgpushUploader
+from reverse_image_search_bridge import ImgpushUploader
 
 
 def _make_uploader(internal_url="http://imgpush:5000", public_base_url="https://example.com", timeout=10):
