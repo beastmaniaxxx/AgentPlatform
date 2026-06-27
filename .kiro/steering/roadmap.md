@@ -35,7 +35,7 @@
 
 - [x] infrastructure -- Docker基盤・ネットワーク・ボリューム構築（Open WebUI / Ollama / SearXNG）。Dependencies: none
 - [x] dify-integration -- DifyとOpen WebUIのPipeline中継基盤構築。Dependencies: infrastructure
-- [ ] web-search -- SearXNG経由のワード検索・画像検索（要約＋引用付き回答、画像Markdown表示）。Dependencies: infrastructure, dify-integration
+- [x] web-search -- SearXNG経由のワード検索・画像検索（要約＋引用付き回答、画像Markdown表示）。Dependencies: infrastructure, dify-integration
 - [ ] image-generation -- ComfyUIによるテキスト→画像生成（ControlNetによるポーズ制御含む）。Dependencies: dify-integration
 - [ ] reverse-image-search -- imgpush + SerpAPI（Google Lens）による逆画像検索。Dependencies: dify-integration
 - [ ] instagram-search -- Instagram Graph APIによるハッシュタグ画像検索。Dependencies: dify-integration
