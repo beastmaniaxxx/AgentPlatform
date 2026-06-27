@@ -69,6 +69,7 @@ volumes:
   dify-sandbox-conf:
   dify-plugin-daemon-storage:
   dify-app-storage:
+  imgpush-data:
 
 services:
   ollama:
@@ -325,6 +326,20 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:${DIFY_WEB_PORT}:3000"
+
+  imgpush:
+    image: hauxir/imgpush:latest
+    networks:
+      - agentplatform-net
+    ports:
+      - "127.0.0.1:${IMGPUSH_PORT}:5000"
+    volumes:
+      - imgpush-data:/images
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/liveness"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   pipelines:
     image: ghcr.io/open-webui/pipelines:main

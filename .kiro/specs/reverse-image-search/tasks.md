@@ -7,7 +7,7 @@
   - 観測可能完了: `docker/.env.example`をコピーして作成した`docker/.env`に上記4変数が存在し、`git status`で`docker/.env`が追跡対象外であることが確認できる
   - _Requirements: 1.1, 1.2, 4.3_
 
-- [ ] 1.2 docker-compose.ymlへのimgpushサービス追加
+- [x] 1.2 docker-compose.ymlへのimgpushサービス追加
   - `docker/docker-compose.yml`に`imgpush`サービス（`hauxir/imgpush`イメージ）を追加し、`agentplatform-net`に接続、画像永続化ボリューム（`imgpush-data`→`/images`）と`127.0.0.1:${IMGPUSH_PORT}:5000`を定義する。既存サービス定義は変更しない
   - 観測可能完了: `docker compose up`後に`curl http://127.0.0.1:${IMGPUSH_PORT}/liveness`が200を返し、サンプル画像を`POST /`した応答の`filename`を`GET /<filename>`で取得できる
   - _Requirements: 1.1_
