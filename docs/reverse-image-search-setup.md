@@ -77,6 +77,18 @@ https://random-words-1234.trycloudflare.com
 > - クイックトンネルのURLは起動するたびに変わる。URLが変わったら `IMGPUSH_PUBLIC_BASE_URL` を再設定し、`docker compose restart pipelines` を実行する。
 > - Zero Trust ダッシュボードの「Public Hostname」で `trycloudflare.com` を**手入力しても機能しない**（`trycloudflare.com` は自分で選べず、上記コマンドが自動発行するURLのみ有効）。固定サブドメインが必要な場合は 1-2 を使う。
 
+#### 自動化スクリプト（推奨）
+
+毎回の「URL取得 → `docker/.env` 書き換え → `pipelines` 再起動」を手作業で行うのは煩雑なため、これらを自動化するスクリプト `scripts/start-imgpush-tunnel.ps1` を用意している。リポジトリルートで以下を実行するだけで、トンネル起動・公開URLの `docker/.env` への反映・`pipelines` の再起動までが自動で完了する。
+
+```powershell
+pwsh ./scripts/start-imgpush-tunnel.ps1
+```
+
+実行後、`準備完了` と表示されたら逆画像検索を実行できる。**このウィンドウは開いたままにする**（Ctrl+C でトンネル終了）。`cloudflared` のパスやポートが既定と異なる場合は `-CloudflaredPath` / `-Port` で指定する。
+
+> クイックトンネルのURLが起動ごとに変わる点は変わらないが、本スクリプトが毎回自動で `docker/.env` を更新して `pipelines` を再起動するため、手動でのURL差し替えは不要になる。URLを固定したい場合は 1-2 の名前付きトンネルへ移行する。
+
 ### 1-2. Cloudflare 名前付きトンネル（独自ドメインで固定URL）
 
 Cloudflare に登録済みの独自ドメイン（例: `example.com`）を持っている場合は、Zero Trust ダッシュボードで名前付きトンネルを作成すると `https://imgpush.example.com` のような固定URLを使える。
