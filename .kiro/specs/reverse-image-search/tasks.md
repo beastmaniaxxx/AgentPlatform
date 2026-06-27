@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [ ] 1. Foundation: 環境変数・imgpushサービス・画像アップロードヘルパーの準備
-- [ ] 1.1 docker/.env.exampleへの環境変数追加
+- [x] 1.1 docker/.env.exampleへの環境変数追加
   - `docker/.env.example`に`IMGPUSH_PORT`（imgpushのホスト公開ポート）・`IMGPUSH_INTERNAL_URL`（既定`http://imgpush:5000`、Pipelineからのアップロード先）・`IMGPUSH_PUBLIC_BASE_URL`（オペレーター提供の公開ベースURL、初期値は空欄）・`DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY`（ワークフローのAPIキー、初期値は空欄）をコメント付きで追加する
   - `SERPAPI_KEY`（Secret）と`REVERSE_IMAGE_ENGINE`（既定`google_lens`）はDify管理画面で環境変数として設定する旨を`.env.example`にコメントで明記し、値は置かない
   - 観測可能完了: `docker/.env.example`をコピーして作成した`docker/.env`に上記4変数が存在し、`git status`で`docker/.env`が追跡対象外であることが確認できる
