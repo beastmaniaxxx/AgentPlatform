@@ -36,7 +36,7 @@
   - _Boundary: ReverseImageSearch Pipeline_
   - _Depends: 1.3_
 
-- [ ] 3. Integration & Validation: セットアップ手順とEnd-to-End確認
+- [x] 3. Integration & Validation: セットアップ手順とEnd-to-End確認
 - [x] 3.1 セットアップ手順書の作成
   - `docs/reverse-image-search-setup.md`に、(1) imgpushを公開到達可能にする設定（`IMGPUSH_PUBLIC_BASE_URL`の用意、Cloudflare Tunnel等の代表例、画像が外部公開され蓄積する旨と定期削除の注意）、(2) `workflows/reverse_image_search.yml`のDifyへのインポート・公開・APIキー発行手順（発行キーを`docker/.env`の`DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY`へ設定）、(3) Dify管理画面でのSecret環境変数`SERPAPI_KEY`と環境変数`REVERSE_IMAGE_ENGINE`（`google_lens`/`yandex_images`/`bing_reverse_image`）・LLMノードのモデル設定、(4) `pipelines`コンテナ再起動とOpen WebUIでの`reverse_image_search`モデル登録手順、(5) imgpush疎通確認（`/liveness`・サンプルPOST/GET）を記載する
   - 観測可能完了: `docs/reverse-image-search-setup.md`が作成され、上記5手順が`docker/.env`およびDify環境変数の対応する変数名を明記した形で記載されている
@@ -49,7 +49,7 @@
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 3.2, 4.1, 4.2, 4.3_
   - _Depends: 3.1_
 
-- [ ] 3.3 エンジン切替確認（Yandex / Bing）
+- [x] 3.3 エンジン切替確認（Yandex / Bing）
   - `REVERSE_IMAGE_ENGINE`を`yandex_images`・`bing_reverse_image`に切替えた各状態で、同一画像に対するチャット送信またはDifyデバッグ実行で、各エンジンの応答が共通形式へ正規化され、1件以上時にMarkdown画像＋出典＋要約、0件時に再検索通知が表示されることを確認する。`url`/`image_url`同時送信が各エンジンで無視されることを併せて確認する
   - 観測可能完了: `yandex_images`・`bing_reverse_image`の各設定で、コード編集なしに切替えた結果が共通形式で表示される（少なくとも1件以上の結果表示と0件通知の双方を確認）
   - _Requirements: 1.2, 2.1, 2.2, 2.3, 4.2_
