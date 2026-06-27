@@ -23,6 +23,8 @@
 
 SerpAPI は公開URLにアクセスして逆画像検索を実行する。`localhost` や LAN 内のプライベートアドレスは到達できないため、imgpush を外部から到達可能な URL で公開し、その URL を `IMGPUSH_PUBLIC_BASE_URL` に設定する。
 
+以下の 1-1・1-2 はどちらか一方を選択する。Cloudflare Tunnel を使う場合は 1-1 のみ実施し、1-2 はスキップする。
+
 ### 1-1. Cloudflare Tunnel を使った公開（推奨例）
 
 [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) を使うと、ルータのポート開放なしに imgpush を HTTPS で公開できる。**Zero Trust Free プランで運用可能**（Cloudflare Tunnel は無料プランに含まれる）。
