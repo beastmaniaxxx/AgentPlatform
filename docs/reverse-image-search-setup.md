@@ -25,12 +25,22 @@ SerpAPI は公開URLにアクセスして逆画像検索を実行する。`local
 
 ### 1-1. Cloudflare Tunnel を使った公開（推奨例）
 
-[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) を使うと、ルータのポート開放なしに imgpush を HTTPS で公開できる。
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) を使うと、ルータのポート開放なしに imgpush を HTTPS で公開できる。**Zero Trust Free プランで運用可能**（Cloudflare Tunnel は無料プランに含まれる）。
 
-1. [Cloudflare Zero Trust ダッシュボード](https://one.cloudflare.com/)にログインし、「Access」>「Tunnels」から新しいトンネルを作成する。
-2. `cloudflared` をインストールし、発行されたトークンでトンネルを起動する。
-3. トンネルの「Public Hostname」に `http://localhost:${IMGPUSH_PORT}`（既定: `http://localhost:5100`）を向ける。
-4. 割り当てられたサブドメイン（例: `https://your-tunnel-domain.trycloudflare.com`）を確認する。
+1. Cloudflare ダッシュボードにログインし、左側メニューの「Zero Trust」セクションを開く。
+2. Zero Trust 内の「Networks」>「Tunnels」（または「Access」>「Tunnels」）に移動し、「+ Create a tunnel」を選択する。
+3. トンネルタイプとして「Cloudflared」を選択し、トンネル名（例: `imgpush`）を入力して「Save tunnel」をクリックする。
+4. 表示されたインストールコマンドを使って `cloudflared` をインストールし、トークン付きのコマンドでサービスとして起動する（Windows の場合は管理者権限の PowerShell で実行する）。
+5. 「Public Hostname」タブで以下を設定してトンネルを保存する。
+
+   | フィールド | 値 |
+   |------------|-----|
+   | Subdomain | 任意の文字列（例: `imgpush`） |
+   | Domain | Cloudflare に登録済みのドメイン（またはサブドメインなしで `trycloudflare.com` を使う場合は不要） |
+   | Type | `HTTP` |
+   | URL | `localhost:5100`（`${IMGPUSH_PORT}` の値） |
+
+6. 設定したサブドメインとドメインから公開URL（例: `https://imgpush.example.com`）を確認する。
 
 ### 1-2. ngrok を使った公開（一時的なテスト用）
 
