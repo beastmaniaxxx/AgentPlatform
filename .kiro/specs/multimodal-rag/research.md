@@ -89,6 +89,31 @@
 - **Open WebUI でのサムネイル到達性** — browser base URL（`http://localhost:${IMGPUSH_PORT}`）が単一ホスト前提。リモートアクセス構成では手順書で base URL 調整を案内。
 - **imgpush 画像の無限蓄積**（登録画像＋検索一時画像）— reverse-image-search 同様に定期削除は運用フォローアップ（境界外）。ただし登録画像は永続が前提のため、検索一時画像との区別（命名/ボリューム分離）を実装時に検討。
 
+## Phase 0 互換性スパイク結果
+
+> 実施手順: `docs/multimodal-rag-compatibility-spike.md`
+> このセクションはタスク2の完了判定ゲートである。Dify管理画面での実測結果を記録するまで、タスク2は完了扱いにしない。
+
+- 実施日: 未実施
+- 実施状態: 未実施
+- 実施者: 未記録
+- Dify バージョン: 未記録
+- Xinference 到達先: `http://xinference:9997`
+- 採用モデルID:
+  - マルチモーダル埋め込み: 未記録
+  - vision rerank: 未記録
+- Visionタグ付きマルチモーダルKB:
+  - 作成状態: 未実施
+  - dataset id: 未記録
+  - Dataset API キー: 未発行（値は `docker/.env` の `DIFY_DATASET_API_KEY` にのみ保存し、ここには記録しない）
+- 検証結果:
+  - text→image: 未実施
+  - image→image: 未実施
+  - image→text: 未実施
+  - Rerank: 未実施
+- 代替判断: 未実施。非互換時は (a) 自鯖 Jina 互換エンドポイント、(b) OpenAI互換エンドポイント、(c) 要件・スコープ再検討の順に判断する。
+- 次アクション: Dify管理画面でプロバイダ登録、Visionタグ付きマルチモーダルKB作成、少数サンプル画像登録、3方向検索とRerankのデバッグ実行を行う。
+
 ## References
 - [Multimodal retrieval is now available in the knowledge base - Dify Blog](https://dify.ai/blog/multimodal-retrieval-is-now-available-in-the-knowledge-base)
 - [Dify v1.11.0 リリース Discussion #29512](https://github.com/langgenius/dify/discussions/29512)

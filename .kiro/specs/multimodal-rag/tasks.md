@@ -18,6 +18,7 @@
   - _Requirements: 2.1, 2.2, 2.3, 3.1_
   - _Boundary: Multimodal KB, Xinference Service_
   - _Depends: 1_
+  - _Blocked: Dify管理画面でのXinferenceプロバイダ登録、Visionタグ付きマルチモーダルKB作成、3方向クロスモーダル検索とRerankの手動実測結果が必要_
 
 - [ ] 3. (P) Foundation: 共有imgpushクライアントと画像バリデーション
   - 画像バイトを imgpush へアップロードし、internal/browser/public の3スコープURLと filename を組み立てる共有クライアントを実装する（public は未設定時 None）
