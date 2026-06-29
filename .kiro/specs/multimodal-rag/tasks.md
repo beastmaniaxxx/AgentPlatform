@@ -2,7 +2,7 @@
 
 > 注: 本機能はDify管理画面でのモデル登録・マルチモーダルKB作成・アプリインポート・APIキー発行といったコード化できない技術セットアップを伴う。タスク2（互換性スパイク）が最大リスク（Xinference×Dify v1.11マルチモーダルKB互換）の検証ゲートであり、これを通過しないとタスク4以降の自鯖内検索が成立しない。非互換時は design/requirements へ戻る（research.md 代替策参照）。
 
-- [ ] 1. Foundation: Xinference サービスと環境変数の追加
+- [x] 1. Foundation: Xinference サービスと環境変数の追加
   - `docker-compose.yml` に Xinference サービスを追加し `agentplatform-net` 接続・GPU割当・モデルキャッシュ永続ボリューム・`127.0.0.1:${XINFERENCE_PORT}:9997` を定義（既存サービス定義は変更しない）
   - `.env.example` に本機能の新規環境変数（`XINFERENCE_PORT`・`IMGPUSH_BROWSER_BASE_URL`・`DIFY_MULTIMODAL_RAG_APP_API_KEY`・`DIFY_DATASET_API_KEY`・`MULTIMODAL_RAG_DATASET_ID`）を追加し、モデル/KBはDify管理画面で設定する旨をコメント明記
   - 観測可能な完了条件: `docker compose up` 後 `xinference` が `agentplatform-net` で起動し、`GET http://127.0.0.1:${XINFERENCE_PORT}/` が応答する
