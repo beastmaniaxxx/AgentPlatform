@@ -92,27 +92,31 @@
 ## Phase 0 互換性スパイク結果
 
 > 実施手順: `docs/multimodal-rag-compatibility-spike.md`
-> このセクションはタスク2の完了判定ゲートである。Dify管理画面での実測結果を記録するまで、タスク2は完了扱いにしない。
+> このセクションはタスク2の完了判定ゲートである。2026-07-03 時点では、Xinference 側でローカルマルチモーダル埋め込みを安定提供できないため、Dify管理画面でのKB作成・3方向検索確認へ進まず停止する。
 
-- 実施日: 未実施
-- 実施状態: 未実施
-- 実施者: 未記録
-- Dify バージョン: 未記録
+- 実施日: 2026-07-03
+- 実施状態: 非互換/停止
+- 実施者: ユーザー手動実行 + Codex支援
+- Dify バージョン: 未記録（Dify管理画面でのKB検証前に停止）
 - Xinference 到達先: `http://xinference:9997`
 - 採用モデルID:
-  - マルチモーダル埋め込み: 未記録
-  - vision rerank: 未記録
+  - マルチモーダル埋め込み: 採用なし
+  - vision rerank: `qwen3-vl-reranker-2b`（`Qwen3-VL-Reranker-2B` は単体ロード成功）
 - Visionタグ付きマルチモーダルKB:
-  - 作成状態: 未実施
+  - 作成状態: 未実施（embedding 非互換のためKB作成前に停止）
   - dataset id: 未記録
-  - Dataset API キー: 未発行（値は `docker/.env` の `DIFY_DATASET_API_KEY` にのみ保存し、ここには記録しない）
+  - Dataset API キー: 未発行
 - 検証結果:
-  - text→image: 未実施
-  - image→image: 未実施
-  - image→text: 未実施
-  - Rerank: 未実施
-- 代替判断: 未実施。非互換時は (a) 自鯖 Jina 互換エンドポイント、(b) OpenAI互換エンドポイント、(c) 要件・スコープ再検討の順に判断する。
-- 次アクション: Dify管理画面でプロバイダ登録、Visionタグ付きマルチモーダルKB作成、少数サンプル画像登録、3方向検索とRerankのデバッグ実行を行う。
+  - `Qwen3-VL-Embedding-2B`: ロード失敗。`PreTrainedModel.from_pretrained() got multiple values for keyword argument 'trust_remote_code'`
+  - `jina-clip-v2`: ロード失敗。`Could not load libtorchcodec`（TorchCodec / PyTorch / FFmpeg 互換エラー）
+  - `gme-Qwen2-VL-2B-Instruct`: ロード失敗。`Could not load libtorchcodec`（TorchCodec / PyTorch / FFmpeg 互換エラー）
+  - `Qwen3-VL-Reranker-2B`: rerank 単体ロード成功。ただし embedding が成立しないためマルチモーダルKB検証には進めない
+  - text→image: 未実施（embedding 非互換のため停止）
+  - image→image: 未実施（embedding 非互換のため停止）
+  - image→text: 未実施（embedding 非互換のため停止）
+  - Rerank: モデル単体ロードのみ成功。KB上のRerank動作は未実施
+- 代替判断: 現行 `xprobe/xinference:latest` では、DifyマルチモーダルKB向けのローカルマルチモーダルembeddingを安定提供できないと判断する。タスク4以降へ進まず、design/requirements に戻って代替案を選定する。
+- 次アクション: 代替案として (a) Xinference イメージ固定/カスタム化による PyTorch/TorchCodec/FFmpeg 互換修正、(b) 自鯖 Jina 互換エンドポイント、(c) OpenAI互換エンドポイント、(d) 要件・スコープ再検討（テキスト→画像のみ等）を比較し、承認済み設計を更新する。
 
 ## References
 - [Multimodal retrieval is now available in the knowledge base - Dify Blog](https://dify.ai/blog/multimodal-retrieval-is-now-available-in-the-knowledge-base)
