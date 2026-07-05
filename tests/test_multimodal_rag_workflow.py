@@ -122,6 +122,40 @@ def test_multimodal_rag_workflow_edges_and_end_outputs_are_consistent():
         assert output_variables == {"count", "items", "summary"}
 
 
+def test_all_end_node_outputs_use_variable_selectors_not_literals():
+    # DifyのEndノードは value_selector（上流出力参照）のみを受け付け、定数 value を描画できない。
+    # 定数 value を含むと管理画面が「コンポーネントのレンダリング中に予期しないエラー」で失敗する。
+    workflow = _load_workflow()
+    end_nodes = [
+        node for node in workflow["workflow"]["graph"]["nodes"]
+        if node["data"]["type"] == "end"
+    ]
+    assert end_nodes
+    for node in end_nodes:
+        for output in node["data"]["outputs"]:
+            assert "value" not in output, (
+                f"End node {node['id']} output {output.get('variable')} uses a literal 'value'"
+            )
+            selector = output.get("value_selector")
+            assert isinstance(selector, list) and len(selector) == 2, (
+                f"End node {node['id']} output {output.get('variable')} needs a 2-part value_selector"
+            )
+
+
+def test_zero_result_end_nodes_reference_normalize_outputs():
+    workflow = _load_workflow()
+    nodes = _nodes_by_id(workflow)
+
+    for end_id, normalize_id in (
+        ("end_no_results", "normalize_results"),
+        ("end_no_results_text", "normalize_results_text"),
+    ):
+        outputs = {o["variable"]: o["value_selector"] for o in nodes[end_id]["data"]["outputs"]}
+        assert outputs["count"] == [normalize_id, "count"]
+        assert outputs["items"] == [normalize_id, "items"]
+        assert outputs["summary"] == [normalize_id, "summary_seed"]
+
+
 def test_normalize_results_code_skips_items_without_filename_and_returns_empty_output():
     main = _normalizer_main()
 

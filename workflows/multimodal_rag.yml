@@ -926,13 +926,19 @@ workflow:
       type: custom
       width: 244
     - data:
-        desc: 0件時は空配列とcount=0を返す。Pipelineが必要に応じてフォールバックを判断する。
+        desc: 0件時は正規化ノードの count=0 / items='[]' / summary_seed='' を参照して返す。Pipelineが必要に応じてフォールバックを判断する。
         outputs:
-        - value: 0
+        - value_selector:
+          - normalize_results
+          - count
           variable: count
-        - value: '[]'
+        - value_selector:
+          - normalize_results
+          - items
           variable: items
-        - value: ''
+        - value_selector:
+          - normalize_results
+          - summary_seed
           variable: summary
         selected: false
         title: 0件出力
@@ -950,13 +956,19 @@ workflow:
       type: custom
       width: 244
     - data:
-        desc: テキストのみ経路の0件時は空配列とcount=0を返す。
+        desc: テキストのみ経路の0件時は正規化ノードの count=0 / items='[]' / summary_seed='' を参照して返す。
         outputs:
-        - value: 0
+        - value_selector:
+          - normalize_results_text
+          - count
           variable: count
-        - value: '[]'
+        - value_selector:
+          - normalize_results_text
+          - items
           variable: items
-        - value: ''
+        - value_selector:
+          - normalize_results_text
+          - summary_seed
           variable: summary
         selected: false
         title: 0件出力（テキストのみ）
