@@ -135,7 +135,7 @@ class Pipeline:
             ),
             MULTIMODAL_RAG_PHASH_MAX_DISTANCE=int(os.getenv("MULTIMODAL_RAG_PHASH_MAX_DISTANCE", "8")),
             # KB意味検索の関連度下限。これ未満のKB結果は「該当なし」とみなしフォールバック判定に含めない。
-            MULTIMODAL_RAG_MIN_SCORE=float(os.getenv("MULTIMODAL_RAG_MIN_SCORE", "0.35")),
+            MULTIMODAL_RAG_MIN_SCORE=float(os.getenv("MULTIMODAL_RAG_MIN_SCORE", "0.28")),
             REQUEST_TIMEOUT_SECONDS=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60")),
         )
 
