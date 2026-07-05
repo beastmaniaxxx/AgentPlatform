@@ -138,7 +138,7 @@ class Pipeline:
         常に文字列を返し、例外を呼び出し元へ伝播しない。
         """
         user_id = DifyWorkflowBridge.resolve_user_id(body)
-        text = (user_message or "").strip()
+        text = self._extract_text(user_message, messages)
 
         try:
             image = self._extract_image(messages)
@@ -300,6 +300,31 @@ class Pipeline:
     def _browser_url(self, filename: str) -> str:
         base = self.valves.IMGPUSH_BROWSER_BASE_URL.rstrip("/")
         return f"{base}/{filename}"
+
+    @staticmethod
+    def _extract_text(user_message, messages: list) -> str:
+        """user_message（文字列 or マルチモーダルなcontentリスト）からテキストを抽出する。
+
+        Open WebUI は画像付きメッセージで user_message を
+        [{"type":"text",...}, {"type":"image_url",...}] のリストで渡す。
+        空のときは messages[-1].content からも拾う。
+        """
+        def _from_content(content) -> str:
+            if isinstance(content, str):
+                return content.strip()
+            if isinstance(content, list):
+                parts = [
+                    item.get("text", "")
+                    for item in content
+                    if isinstance(item, dict) and item.get("type") == "text"
+                ]
+                return "\n".join(part for part in parts if part).strip()
+            return ""
+
+        text = _from_content(user_message)
+        if not text and messages:
+            text = _from_content(messages[-1].get("content"))
+        return text
 
     @staticmethod
     def _extract_image(messages: list) -> Optional[dict]:

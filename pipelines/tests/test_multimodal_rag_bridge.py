@@ -95,6 +95,42 @@ def test_pipe_prompts_for_input_when_no_text_and_no_image(monkeypatch):
     assert len(query_called) == 0
 
 
+def test_pipe_handles_multimodal_list_user_message(monkeypatch):
+    # Open WebUI は画像付きメッセージで user_message をマルチモーダルなリスト
+    # （text/image_url パーツの配列）で渡す。文字列前提だとクラッシュしていた回帰。
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(
+        ImageHashIndex, "query",
+        lambda self, image_bytes, max_distance: [_hash_match("registered.jpg", "exact", 0)],
+    )
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+
+    content = [
+        {"type": "text", "text": "この車は？"},
+        {"type": "image_url", "image_url": {"url": FAKE_IMAGE_DATA_URI}},
+    ]
+
+    result = pipeline.pipe(
+        user_message=content,
+        model_id="multimodal_rag",
+        messages=[{"role": "user", "content": content}],
+        body={},
+    )
+
+    assert isinstance(result, str)
+    assert "完全一致" in result  # クラッシュせず結果を返す
+
+
+def test_extract_text_from_string_and_list():
+    from multimodal_rag_bridge import Pipeline as P
+    assert P._extract_text("  hello  ", []) == "hello"
+    listed = [{"type": "text", "text": "赤い車"}, {"type": "image_url", "image_url": {"url": "x"}}]
+    assert P._extract_text(listed, []) == "赤い車"
+    # user_message が空でも messages 側から拾う
+    assert P._extract_text([], [{"role": "user", "content": "からメッセージ"}]) == "からメッセージ"
+
+
 def test_pipe_image_exact_hash_match_is_top_and_no_external_send(monkeypatch):
     pipeline = _make_pipeline(monkeypatch)
     monkeypatch.setattr(
