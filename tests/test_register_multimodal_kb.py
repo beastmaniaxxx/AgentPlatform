@@ -215,6 +215,29 @@ def test_ollama_caption_client_sends_image_and_model(monkeypatch):
     assert captured["timeout"] == 9
 
 
+def test_ollama_caption_client_surfaces_error_body_on_http_error(monkeypatch):
+    module = _load_module()
+
+    class FakeResponse:
+        status_code = 400
+        text = '{"error":"Multimodal data provided, but model does not support multimodal requests."}'
+
+        def raise_for_status(self):
+            raise requests.exceptions.HTTPError("400 Client Error: Bad Request")
+
+        def json(self):
+            return {}
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(RuntimeError, match="multimodal"):
+        module.OllamaCaptionClient(
+            base_url="http://127.0.0.1:11435",
+            model="text-only-model",
+            timeout=5,
+        ).generate_caption(b"image-bytes")
+
+
 def test_dataset_client_creates_document_by_text(monkeypatch):
     module = _load_module()
     captured = {}

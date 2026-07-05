@@ -95,7 +95,14 @@ class OllamaCaptionClient:
             },
             timeout=self._timeout,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            detail = (response.text or "").strip()[:500]
+            raise RuntimeError(
+                f"Ollamaキャプション生成に失敗しました（HTTP {response.status_code}, "
+                f"model={self._model}）: {detail}。Vision対応モデルを指定してください。"
+            ) from exc
         caption = response.json().get("response", "").strip()
         if not caption:
             raise RuntimeError("Ollama Visionのキャプションが空でした。")
