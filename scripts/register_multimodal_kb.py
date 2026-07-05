@@ -268,7 +268,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="画像ディレクトリをmultimodal-ragのDify KBとハッシュ索引へ登録します。"
     )
-    parser.add_argument("image_dir", type=Path, help="登録対象画像ディレクトリ")
+    parser.add_argument(
+        "image_dir",
+        type=Path,
+        help="登録対象の画像ファイル、または画像を含むディレクトリ",
+    )
     parser.add_argument(
         "--env-file",
         type=Path,
@@ -286,8 +290,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if not args.image_dir.is_dir():
-        print(f"NG: 画像ディレクトリが見つかりません: {args.image_dir}")
+    if not args.image_dir.exists():
+        print(f"NG: 画像パスが見つかりません: {args.image_dir}")
         return 1
 
     try:
@@ -320,6 +324,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _iter_candidate_files(image_dir: Path) -> list[Path]:
+    if image_dir.is_file():
+        return [image_dir]
     return sorted(path for path in image_dir.rglob("*") if path.is_file())
 
 

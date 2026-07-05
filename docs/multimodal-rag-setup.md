@@ -77,12 +77,28 @@ DIFY_MULTIMODAL_RAG_APP_API_KEY=<workflow-app-api-key>
 
 ## 4. 画像の登録（ハッシュ＋キャプション）
 
-`Pillow`・`imagehash` は pipelines ランタイムの依存（`pipelines/requirements.txt`）に含まれる。登録スクリプトを実行し、ディレクトリ内画像を検証→ハッシュ算出→imgpush(internal)アップロード→Ollama Visionキャプション→Dify Dataset API登録→副インデックス追記する（冪等）。ホスト実行時は手順2のとおり `MULTIMODAL_RAG_HASH_INDEX_PATH` をホスト側パスへ上書きしてから実行する。
+`Pillow`・`imagehash` は pipelines ランタイムの依存（`pipelines/requirements.txt`）に含まれる。登録スクリプトを実行し、画像を検証→ハッシュ算出→imgpush(internal)アップロード→Ollama Visionキャプション→Dify Dataset API登録→副インデックス追記する（冪等）。引数には**画像ファイル1枚**または**画像を含むディレクトリ**のどちらも渡せる。
 
 ```powershell
-$env:MULTIMODAL_RAG_HASH_INDEX_PATH = "pipelines/data/multimodal_rag_hash_index.json"
-python scripts/register_multimodal_kb.py <画像ディレクトリ>
+# 1枚だけ登録
+python scripts/register_multimodal_kb.py C:\path\to\seed-red-car.jpg
+# ディレクトリ内をまとめて登録
+python scripts/register_multimodal_kb.py C:\path\to\images\
 ```
+
+> **ホストから実行する場合の到達性（重要）**: `docker/.env` の各URLは**コンテナ間通信用のサービス名**（`imgpush:5000`・`dify-api:5001`・`ollama:11434`）であり、ホストからは解決できない。ハッシュ索引パスもコンテナ内パス。ホスト実行時は次のように**ホストから到達できる値へ上書き**してから実行する。
+>
+> ```powershell
+> $env:MULTIMODAL_RAG_HASH_INDEX_PATH = "pipelines/data/multimodal_rag_hash_index.json"
+> $env:IMGPUSH_INTERNAL_URL = "http://127.0.0.1:5100"   # IMGPUSH_PORT
+> $env:DIFY_API_BASE_URL   = "http://127.0.0.1:5001/v1" # DIFY_API_PORT
+> $env:OLLAMA_BASE_URL     = "http://127.0.0.1:11434"   # 下記の注意を参照
+> python scripts/register_multimodal_kb.py C:\path\to\seed-red-car.jpg
+> ```
+>
+> - `ollama` サービスは既定ではホストにポート公開していない。ホストでキャプション生成するには、(a) ホスト上で Ollama を直接起動している（`http://127.0.0.1:11434` が生きている）か、(b) `docker-compose.override.yml` 等で `ollama` に `127.0.0.1:11434:11434` を公開する、のいずれかが必要。
+> - imgpush はコンテナ側ポート `5000`、ホスト公開は `IMGPUSH_PORT`（既定 `5100`）。登録は画像バイトを imgpush へアップロードできれば十分で、テキストKBでは文書中の画像リンクURLは索引に使われない（検索時の表示URLは Pipeline が `IMGPUSH_BROWSER_BASE_URL` ＋ filename から再構築する）。
+> - コンテナ内から実行できる環境（`ollama`/`imgpush`/`dify-api` にサービス名で到達できる）では、上書き不要で `docker/.env` の既定値のまま実行できる。
 
 - 不正形式（JPG/PNG/GIF以外）・2MB超はスキップし、他画像の登録は継続する。
 - 同一 SHA-256 は登録済みとしてスキップされ、再実行で未登録分のみ処理する。

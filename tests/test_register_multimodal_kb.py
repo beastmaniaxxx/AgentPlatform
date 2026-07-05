@@ -256,6 +256,58 @@ def test_dataset_client_creates_document_by_text(monkeypatch):
     assert captured["timeout"] == 8
 
 
+def test_iter_candidate_files_accepts_single_file(tmp_path):
+    module = _load_module()
+    image_path = tmp_path / "red.png"
+    image_path.write_bytes(_image_bytes())
+
+    assert module._iter_candidate_files(image_path) == [image_path]
+
+
+def test_iter_candidate_files_lists_directory_files_sorted(tmp_path):
+    module = _load_module()
+    (tmp_path / "b.png").write_bytes(_image_bytes())
+    (tmp_path / "a.png").write_bytes(_image_bytes())
+
+    result = module._iter_candidate_files(tmp_path)
+
+    assert [p.name for p in result] == ["a.png", "b.png"]
+
+
+def test_main_accepts_single_file_path(tmp_path, monkeypatch, capsys):
+    module = _load_module()
+    image_path = tmp_path / "seed-red-car.jpg"
+    image_path.write_bytes(_image_bytes(format_name="JPEG"))
+    captured = {}
+
+    monkeypatch.setattr(module, "merged_env", lambda env_file: {})
+    monkeypatch.setattr(
+        module, "build_clients", lambda env, timeout: (object(), object(), object(), object())
+    )
+
+    def fake_register_directory(image_dir, **kwargs):
+        captured["path"] = image_dir
+        return module.RegisterSummary(processed=1, registered=1, skipped=0, failed=0)
+
+    monkeypatch.setattr(module, "register_directory", fake_register_directory)
+
+    exit_code = module.main([str(image_path)])
+
+    assert exit_code == 0
+    assert captured["path"] == image_path
+    assert "見つかりません" not in capsys.readouterr().out
+
+
+def test_main_rejects_nonexistent_path(tmp_path, capsys):
+    module = _load_module()
+    missing = tmp_path / "does-not-exist.jpg"
+
+    exit_code = module.main([str(missing)])
+
+    assert exit_code == 1
+    assert "見つかりません" in capsys.readouterr().out
+
+
 def test_build_document_text_contains_caption_image_link_and_metadata():
     module = _load_module()
 
