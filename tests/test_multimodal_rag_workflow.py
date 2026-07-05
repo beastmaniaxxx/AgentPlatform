@@ -183,6 +183,22 @@ def test_normalize_extracts_filename_and_title_from_content_when_metadata_lacks_
     assert items[0]["title"] == "seed-red-car"
 
 
+def test_normalize_reads_score_from_metadata():
+    # Dify Knowledge Retrieval はスコアを metadata.score に入れる（トップレベルではない）。
+    main = _normalizer_main()
+    result = json.dumps(
+        [
+            {
+                "metadata": {"score": 0.2778, "document_id": "d1"},
+                "content": "title: A\nfilename: a.jpg\ncaption: x",
+            }
+        ],
+        ensure_ascii=False,
+    )
+    items = json.loads(main(result)["items"])
+    assert items[0]["score"] == 0.2778
+
+
 def test_normalize_results_code_skips_items_without_filename_and_returns_empty_output():
     main = _normalizer_main()
 

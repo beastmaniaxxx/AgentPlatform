@@ -536,7 +536,12 @@ workflow:
               return match.group(1).strip() if match else ""
 
           def _score(record):
-              value = record.get("score", record.get("similarity", 0))
+              metadata = _metadata(record)
+              value = record.get("score")
+              if value is None:
+                  value = metadata.get("score")
+              if value is None:
+                  value = record.get("similarity", 0)
               try:
                   return float(value)
               except Exception:
@@ -690,7 +695,12 @@ workflow:
               return match.group(1).strip() if match else ""
 
           def _score(record):
-              value = record.get("score", record.get("similarity", 0))
+              metadata = _metadata(record)
+              value = record.get("score")
+              if value is None:
+                  value = metadata.get("score")
+              if value is None:
+                  value = record.get("similarity", 0)
               try:
                   return float(value)
               except Exception:

@@ -33,6 +33,7 @@ def _make_pipeline(monkeypatch, **env):
         "IMGPUSH_PUBLIC_BASE_URL": "https://public.example.com",
         "MULTIMODAL_RAG_HASH_INDEX_PATH": "/data/hash_index.json",
         "MULTIMODAL_RAG_PHASH_MAX_DISTANCE": "6",
+        "MULTIMODAL_RAG_MIN_SCORE": "0.35",
         "REQUEST_TIMEOUT_SECONDS": "30",
     }
     defaults.update(env)
@@ -184,6 +185,43 @@ def test_pipe_text_query_renders_thumbnails_and_summary(monkeypatch):
     # No image -> hash lookup and imgpush upload must be skipped.
     assert len(query_called) == 0
     assert len(upload_called) == 0
+
+
+def test_pipe_filters_low_score_kb_items_and_triggers_not_found(monkeypatch):
+    # 無関係画像/クエリで低スコアのKB結果しか無い場合は total==0 とし、フォールバック判定へ回す。
+    pipeline = _make_pipeline(monkeypatch)  # 既定 MIN_SCORE=0.35
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    items = [{"filename": "x.jpg", "title": "x", "text": "t", "source": "s", "score": 0.28}]
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(1, items))
+
+    result = pipeline.pipe(
+        user_message="無関係な語",
+        model_id="multimodal_rag",
+        messages=_text_messages("無関係な語"),
+        body={},
+    )
+
+    assert "見つかりません" in result  # total==0 → 該当なし（テキストのみ）
+
+
+def test_pipe_min_score_boundary_keeps_ge_and_drops_below(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch, MULTIMODAL_RAG_MIN_SCORE="0.35")
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    items = [
+        {"filename": "keep.jpg", "title": "k", "text": "t", "source": "s", "score": 0.35},
+        {"filename": "drop.jpg", "title": "d", "text": "t", "source": "s", "score": 0.34},
+    ]
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(2, items))
+
+    result = pipeline.pipe(
+        user_message="車",
+        model_id="multimodal_rag",
+        messages=_text_messages("車"),
+        body={},
+    )
+
+    assert "http://localhost:5100/keep.jpg" in result
+    assert "drop.jpg" not in result
 
 
 def test_pipe_dedupes_same_filename_preferring_hash_match(monkeypatch):

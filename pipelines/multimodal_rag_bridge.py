@@ -113,6 +113,7 @@ class Pipeline:
         IMGPUSH_PUBLIC_BASE_URL: str
         MULTIMODAL_RAG_HASH_INDEX_PATH: str
         MULTIMODAL_RAG_PHASH_MAX_DISTANCE: int
+        MULTIMODAL_RAG_MIN_SCORE: float
         REQUEST_TIMEOUT_SECONDS: int
 
     def __init__(self) -> None:
@@ -133,6 +134,8 @@ class Pipeline:
                 "/app/pipelines/data/multimodal_rag_hash_index.json",
             ),
             MULTIMODAL_RAG_PHASH_MAX_DISTANCE=int(os.getenv("MULTIMODAL_RAG_PHASH_MAX_DISTANCE", "8")),
+            # KB意味検索の関連度下限。これ未満のKB結果は「該当なし」とみなしフォールバック判定に含めない。
+            MULTIMODAL_RAG_MIN_SCORE=float(os.getenv("MULTIMODAL_RAG_MIN_SCORE", "0.35")),
             REQUEST_TIMEOUT_SECONDS=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60")),
         )
 
@@ -162,8 +165,11 @@ class Pipeline:
                 query_image_url = upload_result.internal_url
 
             outputs = self._run_workflow(text, query_image_url, user_id)
-            kb_count, kb_items = self._parse_outputs(outputs)
-            total = len(hash_matches) + kb_count
+            _, kb_items = self._parse_outputs(outputs)
+            # 関連度下限でKB結果を絞り込む（multipleモードは常に上位を返しスコアで自動フィルタ
+            # されないため、Pipeline側で足切りしてフォールバック判定の精度を担保する）。
+            kb_items = self._filter_by_score(kb_items)
+            total = len(hash_matches) + len(kb_items)
 
             if total <= 0:
                 # 自鯖内0件。画像があればWeb逆画像検索へフォールバックする（要件4.2-4.5, 5.2）。
@@ -251,6 +257,20 @@ class Pipeline:
         if not isinstance(items, list):
             items = []
         return count, items
+
+    def _filter_by_score(self, kb_items: list) -> list:
+        threshold = self.valves.MULTIMODAL_RAG_MIN_SCORE
+        kept = []
+        for item in kb_items:
+            if not isinstance(item, dict):
+                continue
+            try:
+                score = float(item.get("score", 0) or 0)
+            except (TypeError, ValueError):
+                score = 0.0
+            if score >= threshold:
+                kept.append(item)
+        return kept
 
     def _render_results(self, hash_matches: list[HashMatch], kb_items: list, summary: str) -> str:
         seen: set[str] = set()
