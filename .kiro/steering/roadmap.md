@@ -39,6 +39,6 @@
 - [ ] image-generation -- ComfyUIによるテキスト→画像生成（ControlNetによるポーズ制御含む）。Dependencies: dify-integration
 - [x] reverse-image-search -- imgpush + SerpAPI（Google Lens）による逆画像検索。Dependencies: dify-integration
 - [ ] instagram-search -- Instagram Graph APIによるハッシュタグ画像検索。Dependencies: dify-integration
-- [ ] multimodal-rag -- Difyナレッジベースによるストレージ内マルチモーダル検索（逆画像検索のフォールバック先）。Dependencies: dify-integration, reverse-image-search
+- [x] multimodal-rag -- Difyナレッジベースによるストレージ内マルチモーダル検索（逆画像検索のフォールバック先）。Dependencies: dify-integration, reverse-image-search
 - [ ] video-generation -- ComfyUIによるテキスト→動画生成。Dependencies: image-generation
 - [ ] ui-customization -- Open WebUI Functions/Custom CSSによる全機能横断のUX調整・ワークフロー最適化。Dependencies: web-search, image-generation, reverse-image-search, instagram-search, multimodal-rag, video-generation
