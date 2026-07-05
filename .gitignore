@@ -20,3 +20,6 @@ __pycache__/
 pipelines/*/valves.json
 # pipelinesコンテナがロードに失敗したファイルを移動するディレクトリ（ランタイム成果物）
 pipelines/failed/
+
+# multimodal-rag ローカルのハッシュ副インデックス（運用データ・非ソース）
+pipelines/data/
