@@ -4,8 +4,8 @@ import json
 import pytest
 import requests
 
-from image_hash_index import HashEntry, HashMatch, ImageHashIndex
-from imgpush_client import ImgpushClient, ImgpushUploadResult
+from mmrag_lib.image_hash_index import HashEntry, HashMatch, ImageHashIndex
+from mmrag_lib.imgpush_client import ImgpushClient, ImgpushUploadResult
 from multimodal_rag_bridge import DifyChatBridge, DifyWorkflowBridge, Pipeline
 
 

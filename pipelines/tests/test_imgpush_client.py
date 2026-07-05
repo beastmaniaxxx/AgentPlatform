@@ -5,7 +5,7 @@ import pytest
 import requests
 from PIL import Image
 
-from imgpush_client import ImageValidationError, ImgpushClient
+from mmrag_lib.imgpush_client import ImageValidationError, ImgpushClient
 
 
 def _image_bytes(format_name):

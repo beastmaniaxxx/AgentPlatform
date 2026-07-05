@@ -4,7 +4,7 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw
 
-from image_hash_index import HashEntry, ImageHashIndex
+from mmrag_lib.image_hash_index import HashEntry, ImageHashIndex
 
 
 def _png_bytes(pattern="diagonal", size=(64, 64)):

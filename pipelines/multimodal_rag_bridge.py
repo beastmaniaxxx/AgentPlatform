@@ -11,13 +11,19 @@ from __future__ import annotations
 import base64
 import json
 import os
+import sys
 from typing import Optional
 
 import requests
 from pydantic import BaseModel
 
-from image_hash_index import HashMatch, ImageHashIndex
-from imgpush_client import ImgpushClient, ImgpushUploadResult
+# Open WebUI Pipelines のローダーはトップレベル .py のみ走査する。共有ヘルパーは
+# サブパッケージ mmrag_lib に置く（走査対象外）。ローダー実行時にこのファイルの
+# ディレクトリを sys.path へ加え、mmrag_lib を解決できるようにする。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mmrag_lib.image_hash_index import HashMatch, ImageHashIndex
+from mmrag_lib.imgpush_client import ImgpushClient, ImgpushUploadResult
 
 
 _INPUT_PROMPT = (

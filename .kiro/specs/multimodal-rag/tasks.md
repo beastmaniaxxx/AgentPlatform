@@ -102,3 +102,4 @@
 ## Implementation Notes
 
 - ハッシュ副インデックスのパスは二重表現: pipelines コンテナ内 `/app/pipelines/data/multimodal_rag_hash_index.json`（Pipeline が読む）とホスト側 `pipelines/data/multimodal_rag_hash_index.json`（同一物理ファイル、バインドマウント `../pipelines:/app/pipelines`）。登録スクリプトをホスト実行する際は `MULTIMODAL_RAG_HASH_INDEX_PATH` をホスト側パスへ上書きする（`docs/multimodal-rag-setup.md` 手順2/4）。タスク9のE2Eで登録→検索を疎通させる際に必須。
+- Open WebUI Pipelines はトップレベル `pipelines/*.py` のみを走査し、`Pipeline` クラスの無い .py は `pipelines/failed/` へ隔離（＝ソース削除）する。共有ヘルパー `imgpush_client.py`/`image_hash_index.py` は `Pipeline` クラスを持たないため隔離され、`multimodal_rag_bridge.py` の兄弟importも連鎖破損した。対策: 共有ヘルパーをサブパッケージ `pipelines/mmrag_lib/`（走査対象外）へ移動し、`multimodal_rag_bridge.py` は自身のディレクトリを sys.path へ加えて `from mmrag_lib...` で読む。register スクリプト/テストも `mmrag_lib.*` を import する。

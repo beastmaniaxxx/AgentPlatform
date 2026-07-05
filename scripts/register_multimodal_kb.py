@@ -20,8 +20,8 @@ DEFAULT_ENV_PATH = REPO_ROOT / "docker" / ".env"
 if str(PIPELINES_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINES_DIR))
 
-from image_hash_index import HashEntry, HashMatch, ImageHashes, ImageHashIndex  # noqa: E402
-from imgpush_client import ImageValidationError, ImgpushClient  # noqa: E402
+from mmrag_lib.image_hash_index import HashEntry, HashMatch, ImageHashes, ImageHashIndex  # noqa: E402
+from mmrag_lib.imgpush_client import ImageValidationError, ImgpushClient  # noqa: E402
 
 
 DEFAULT_TIMEOUT_SECONDS = 60
