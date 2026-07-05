@@ -92,11 +92,12 @@ python scripts/register_multimodal_kb.py C:\path\to\images\
 > $env:MULTIMODAL_RAG_HASH_INDEX_PATH = "pipelines/data/multimodal_rag_hash_index.json"
 > $env:IMGPUSH_INTERNAL_URL = "http://127.0.0.1:5100"   # IMGPUSH_PORT
 > $env:DIFY_API_BASE_URL   = "http://127.0.0.1:5001/v1" # DIFY_API_PORT
-> $env:OLLAMA_BASE_URL     = "http://127.0.0.1:11434"   # 下記の注意を参照
+> $env:OLLAMA_BASE_URL     = "http://127.0.0.1:11435"   # 下記の注意を参照（コンテナOllamaの公開ポート）
 > python scripts/register_multimodal_kb.py C:\path\to\seed-red-car.jpg
 > ```
 >
-> - `ollama` サービスは既定ではホストにポート公開していない。ホストでキャプション生成するには、(a) ホスト上で Ollama を直接起動している（`http://127.0.0.1:11434` が生きている）か、(b) `docker-compose.override.yml` 等で `ollama` に `127.0.0.1:11434:11434` を公開する、のいずれかが必要。
+> - `ollama` サービスは既定ではホストにポート公開していない。ホストでキャプション生成するには、`docker-compose.override.yml` で `ollama` にホストポートを公開する。**Windows等でネイティブの Ollama アプリが `127.0.0.1:11434` を使用している場合は衝突する**ため、コンテナ側は別ポートに公開する（本リポジトリの override 例では `127.0.0.1:11435:11434`）。この場合、登録スクリプトからは `OLLAMA_BASE_URL=http://127.0.0.1:11435` を指定する。
+>   - 代替として、ネイティブ Ollama（`127.0.0.1:11434`）にキャプションモデルを用意して使うことも可能だが、Dify（コンテナ）は `ollama:11434`（コンテナ）を参照するため、登録時と検索時でモデルが分かれ得る点に注意。単一の Ollama（コンテナ）に揃えるほうが一貫する。
 > - imgpush はコンテナ側ポート `5000`、ホスト公開は `IMGPUSH_PORT`（既定 `5100`）。登録は画像バイトを imgpush へアップロードできれば十分で、テキストKBでは文書中の画像リンクURLは索引に使われない（検索時の表示URLは Pipeline が `IMGPUSH_BROWSER_BASE_URL` ＋ filename から再構築する）。
 > - コンテナ内から実行できる環境（`ollama`/`imgpush`/`dify-api` にサービス名で到達できる）では、上書き不要で `docker/.env` の既定値のまま実行できる。
 
