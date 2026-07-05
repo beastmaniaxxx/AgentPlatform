@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from mmrag_lib.image_hash_index import HashMatch, ImageHashIndex
 from mmrag_lib.imgpush_client import ImgpushClient, ImgpushUploadResult
+from mmrag_lib.ollama_caption import OllamaCaptionClient
 
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
@@ -128,6 +129,8 @@ class Pipeline:
         DIFY_API_BASE_URL: str
         DIFY_MULTIMODAL_RAG_APP_API_KEY: str
         DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY: str
+        OLLAMA_BASE_URL: str
+        MULTIMODAL_RAG_CAPTION_MODEL: str
         IMGPUSH_INTERNAL_URL: str
         IMGPUSH_BROWSER_BASE_URL: str
         IMGPUSH_PUBLIC_BASE_URL: str
@@ -145,6 +148,8 @@ class Pipeline:
             DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY=os.getenv(
                 "DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY", ""
             ),
+            OLLAMA_BASE_URL=os.getenv("OLLAMA_BASE_URL", "http://ollama:11434"),
+            MULTIMODAL_RAG_CAPTION_MODEL=os.getenv("MULTIMODAL_RAG_CAPTION_MODEL", ""),
             IMGPUSH_INTERNAL_URL=os.getenv("IMGPUSH_INTERNAL_URL", "http://imgpush:5000"),
             IMGPUSH_BROWSER_BASE_URL=os.getenv("IMGPUSH_BROWSER_BASE_URL", "http://localhost:5100"),
             IMGPUSH_PUBLIC_BASE_URL=os.getenv("IMGPUSH_PUBLIC_BASE_URL", ""),
@@ -178,13 +183,18 @@ class Pipeline:
         try:
             hash_matches: list[HashMatch] = []
             upload_result: Optional[ImgpushUploadResult] = None
-            query_image_url: Optional[str] = None
             if image is not None:
                 hash_matches = self._lookup_hash_matches(image["bytes"])
-                upload_result = self._upload_query_image(image)
-                query_image_url = upload_result.internal_url
+                upload_result = self._upload_query_image(image)  # フォールバック公開URL用
+                # クエリ画像のキャプションはPipelineがOllamaを直接呼んで生成する
+                # （Difyのthinkingノードは<think>推論を本文へ混入させ検索クエリを汚染するため）。
+                caption = self._caption_query_image(image["bytes"])
+                if caption:
+                    text = f"{text}\n{caption}".strip() if text else caption
 
-            outputs = self._run_workflow(text, query_image_url, user_id)
+            # 検索クエリは常にテキスト（ユーザー入力＋画像キャプション）。ワークフローは
+            # テキスト経路でKB検索する（画像はワークフローへ渡さない）。
+            outputs = self._run_workflow(text, None, user_id)
             _, kb_items = self._parse_outputs(outputs)
             # 関連度下限でKB結果を絞り込む（multipleモードは常に上位を返しスコアで自動フィルタ
             # されないため、Pipeline側で足切りしてフォールバック判定の精度を担保する）。
@@ -218,6 +228,19 @@ class Pipeline:
         )
         # imgpush(internal)への保存とURL文字列の組み立てのみ。外部送信は行わない。
         return client.upload(image["bytes"], image["mime_type"])
+
+    def _caption_query_image(self, image_bytes: bytes) -> str:
+        # 登録時と同一方式（Ollama直呼び・think無効）でクリーンにキャプションする。
+        # 失敗しても検索は止めず、ハッシュ照合＋テキストで継続する。
+        try:
+            client = OllamaCaptionClient(
+                base_url=self.valves.OLLAMA_BASE_URL,
+                model=self.valves.MULTIMODAL_RAG_CAPTION_MODEL,
+                timeout=self.valves.REQUEST_TIMEOUT_SECONDS,
+            )
+            return client.generate_caption(image_bytes)
+        except Exception:  # noqa: BLE001 - キャプション障害で検索全体を止めない
+            return ""
 
     def _handle_no_local_result(
         self, upload_result: Optional[ImgpushUploadResult], user_id: str

@@ -6,7 +6,14 @@ import requests
 
 from mmrag_lib.image_hash_index import HashEntry, HashMatch, ImageHashIndex
 from mmrag_lib.imgpush_client import ImgpushClient, ImgpushUploadResult
+from mmrag_lib.ollama_caption import OllamaCaptionClient
 from multimodal_rag_bridge import DifyChatBridge, DifyWorkflowBridge, Pipeline
+
+
+@pytest.fixture(autouse=True)
+def _stub_caption(monkeypatch):
+    # 既定でクエリ画像キャプション（Ollama直呼び）をスタブ化し、実通信を避ける。
+    monkeypatch.setattr(OllamaCaptionClient, "generate_caption", lambda self, image_bytes: "画像キャプション")
 
 
 FAKE_IMAGE_B64 = base64.b64encode(b"fakeimagedata").decode()
@@ -28,6 +35,8 @@ def _make_pipeline(monkeypatch, **env):
         "DIFY_API_BASE_URL": "http://dify-api:5001/v1",
         "DIFY_MULTIMODAL_RAG_APP_API_KEY": "test-mmrag-key",
         "DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY": "test-ris-key",
+        "OLLAMA_BASE_URL": "http://ollama:11434",
+        "MULTIMODAL_RAG_CAPTION_MODEL": "test-vision",
         "IMGPUSH_INTERNAL_URL": "http://imgpush:5000",
         "IMGPUSH_BROWSER_BASE_URL": "http://localhost:5100",
         "IMGPUSH_PUBLIC_BASE_URL": "https://public.example.com",
@@ -292,10 +301,13 @@ def test_pipe_continues_kb_search_when_hash_index_read_fails(monkeypatch):
     assert "http://localhost:5100/kb.jpg" in result
 
 
-def test_pipe_passes_query_image_as_remote_url_to_workflow(monkeypatch):
+def test_pipe_captions_image_in_pipeline_and_sends_text_only_to_workflow(monkeypatch):
+    # Difyのthinkingノードを避け、Pipelineがクエリ画像をキャプションして
+    # query_text として渡す（query_image はワークフローへ渡さない）。
     pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(OllamaCaptionClient, "generate_caption", lambda self, b: "赤い車のキャプション")
     monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
-    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("query.jpg"))
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("query.jpg", public=True))
     captured = {}
 
     def fake_run(self, inputs, files, user_id):
@@ -312,9 +324,10 @@ def test_pipe_passes_query_image_as_remote_url_to_workflow(monkeypatch):
         body={},
     )
 
-    assert captured["inputs"]["query_text"] == "猫"
-    assert captured["inputs"]["query_image"]["url"] == "http://imgpush:5000/query.jpg"
-    assert captured["inputs"]["query_image"]["transfer_method"] == "remote_url"
+    assert "猫" in captured["inputs"]["query_text"]
+    assert "赤い車のキャプション" in captured["inputs"]["query_text"]
+    assert "query_image" not in captured["inputs"]
+    assert captured["files"] == []
 
 
 def test_pipe_returns_string_and_does_not_raise_on_request_exception(monkeypatch):

@@ -24,6 +24,7 @@ if str(PIPELINES_DIR) not in sys.path:
 
 from mmrag_lib.image_hash_index import HashEntry, HashMatch, ImageHashes, ImageHashIndex  # noqa: E402
 from mmrag_lib.imgpush_client import ImageValidationError, ImgpushClient  # noqa: E402
+from mmrag_lib.ollama_caption import OllamaCaptionClient  # noqa: E402
 
 
 DEFAULT_TIMEOUT_SECONDS = 60
@@ -73,40 +74,6 @@ class RegisterSummary:
 
 class RegisterConfigError(RuntimeError):
     """登録CLIの設定不足または入力不備。"""
-
-
-class OllamaCaptionClient:
-    def __init__(self, base_url: str, model: str, timeout: int) -> None:
-        self._base_url = base_url.rstrip("/")
-        self._model = model
-        self._timeout = timeout
-
-    def generate_caption(self, image_bytes: bytes) -> str:
-        response = requests.post(
-            f"{self._base_url}/api/generate",
-            json={
-                "model": self._model,
-                "prompt": (
-                    "この画像を自鯖内ナレッジベース検索に使うため、"
-                    "主要な被写体、色、構図、文字、雰囲気を日本語で簡潔に説明してください。"
-                ),
-                "images": [base64.b64encode(image_bytes).decode("ascii")],
-                "stream": False,
-            },
-            timeout=self._timeout,
-        )
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as exc:
-            detail = (response.text or "").strip()[:500]
-            raise RuntimeError(
-                f"Ollamaキャプション生成に失敗しました（HTTP {response.status_code}, "
-                f"model={self._model}）: {detail}。Vision対応モデルを指定してください。"
-            ) from exc
-        caption = response.json().get("response", "").strip()
-        if not caption:
-            raise RuntimeError("Ollama Visionのキャプションが空でした。")
-        return caption
 
 
 class DifyDatasetClient:
