@@ -224,6 +224,28 @@ def test_pipe_min_score_boundary_keeps_ge_and_drops_below(monkeypatch):
     assert "drop.jpg" not in result
 
 
+def test_strip_think_removes_closed_and_unclosed_blocks():
+    from multimodal_rag_bridge import _strip_think
+    assert _strip_think("<think>reasoning</think>本文です") == "本文です"
+    # 未閉じ（推論が途中で切れた）→ それ以降を落とす
+    assert _strip_think("前半<think>途中で切れた推論") == "前半"
+    assert _strip_think("") == ""
+
+
+def test_pipe_strips_think_from_summary(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    items = [{"filename": "a.jpg", "title": "A", "text": "t", "source": "s", "score": 0.5}]
+    summary = "<think>長い推論トレース...\nDraft 1...\nDraft 2...</think>登録情報に基づく赤い車です。"
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, i, f, u: _outputs(1, items, summary))
+
+    result = pipeline.pipe("車", "multimodal_rag", _text_messages("車"), {})
+
+    assert "<think>" not in result
+    assert "推論トレース" not in result
+    assert "登録情報に基づく赤い車です。" in result
+
+
 def test_pipe_dedupes_same_filename_preferring_hash_match(monkeypatch):
     pipeline = _make_pipeline(monkeypatch)
     monkeypatch.setattr(

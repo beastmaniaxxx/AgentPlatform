@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import sys
 from typing import Optional
 
@@ -24,6 +25,25 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from mmrag_lib.image_hash_index import HashMatch, ImageHashIndex
 from mmrag_lib.imgpush_client import ImgpushClient, ImgpushUploadResult
+
+
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _strip_think(text: str) -> str:
+    """thinkingモデルの推論トレース(<think>...</think>)を除去する。
+
+    未閉じの <think>（推論が途中で切れた場合）は、それ以降を全て落とす。
+    Open WebUI が <think> を思考ブロック扱いして本文を隠す問題を防ぐ。
+    """
+    if not text:
+        return text
+    text = _THINK_BLOCK.sub("", text)
+    lowered = text.lower()
+    idx = lowered.find("<think>")
+    if idx != -1:
+        text = text[:idx]
+    return text.strip()
 
 
 _INPUT_PROMPT = (
@@ -175,7 +195,9 @@ class Pipeline:
                 # 自鯖内0件。画像があればWeb逆画像検索へフォールバックする（要件4.2-4.5, 5.2）。
                 return self._handle_no_local_result(upload_result, user_id)
 
-            return self._render_results(hash_matches, kb_items, outputs.get("summary", ""))
+            return self._render_results(
+                hash_matches, kb_items, _strip_think(outputs.get("summary", ""))
+            )
         except (ValueError, requests.exceptions.RequestException) as exc:
             return f"⚠️ 自鯖内検索の実行に失敗しました: {exc}"
 
@@ -207,7 +229,7 @@ class Pipeline:
         # 外部送信を伴うため、通知を必ず前置する（要件4.3, 4.4）。送信失敗時も通知は保持する。
         prefix = f"{_FALLBACK_NOTICE}{_EXTERNAL_SEND_NOTICE}"
         try:
-            answer = self._fallback_web_search(upload_result.public_url, user_id)
+            answer = _strip_think(self._fallback_web_search(upload_result.public_url, user_id))
         except requests.exceptions.RequestException as exc:
             return f"{prefix}⚠️ Web逆画像検索の実行に失敗しました: {exc}"
         return f"{prefix}{answer}"
