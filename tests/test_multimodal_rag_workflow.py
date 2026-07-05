@@ -159,6 +159,30 @@ def test_zero_result_end_nodes_reference_normalize_outputs():
         assert outputs["summary"] == [normalize_id, "summary_seed"]
 
 
+def test_normalize_extracts_filename_and_title_from_content_when_metadata_lacks_them():
+    # Dify Knowledge Retrieval の metadata は _source/dataset_id 等のみで filename を持たない。
+    # filename/title は本文テキストの "filename:"/"title:" 行から拾えること。
+    main = _normalizer_main()
+
+    result = json.dumps(
+        [
+            {
+                "metadata": {"_source": "knowledge", "dataset_id": "ds-1", "document_id": "doc-1"},
+                "content": "title: seed-red-car\nfilename: Gej3i.jpg\ncaption: 赤い車の画像。",
+                "score": 0.39,
+            }
+        ],
+        ensure_ascii=False,
+    )
+
+    normalized = main(result)
+    items = json.loads(normalized["items"])
+
+    assert normalized["count"] == 1
+    assert items[0]["filename"] == "Gej3i.jpg"
+    assert items[0]["title"] == "seed-red-car"
+
+
 def test_normalize_results_code_skips_items_without_filename_and_returns_empty_output():
     main = _normalizer_main()
 

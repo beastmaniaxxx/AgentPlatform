@@ -496,6 +496,7 @@ workflow:
     - data:
         code: |-
           import json
+          import re
 
           def _load_result(result):
               if result is None:
@@ -530,6 +531,10 @@ workflow:
                   or ""
               )
 
+          def _field(text, name):
+              match = re.search(r"(?m)^\s*" + name + r":\s*(.+?)\s*$", text or "")
+              return match.group(1).strip() if match else ""
+
           def _score(record):
               value = record.get("score", record.get("similarity", 0))
               try:
@@ -543,14 +548,20 @@ workflow:
                   if not isinstance(record, dict):
                       continue
                   metadata = _metadata(record)
+                  content = _text(record)
                   filename = (
                       metadata.get("filename")
                       or record.get("filename")
-                      or ""
+                      or _field(content, "filename")
                   )
                   if not filename:
                       continue
-                  title = metadata.get("title") or record.get("title") or filename
+                  title = (
+                      metadata.get("title")
+                      or record.get("title")
+                      or _field(content, "title")
+                      or filename
+                  )
                   source = (
                       record.get("source")
                       or metadata.get("source")
@@ -639,6 +650,7 @@ workflow:
     - data:
         code: |-
           import json
+          import re
 
           def _load_result(result):
               if result is None:
@@ -673,6 +685,10 @@ workflow:
                   or ""
               )
 
+          def _field(text, name):
+              match = re.search(r"(?m)^\s*" + name + r":\s*(.+?)\s*$", text or "")
+              return match.group(1).strip() if match else ""
+
           def _score(record):
               value = record.get("score", record.get("similarity", 0))
               try:
@@ -686,14 +702,20 @@ workflow:
                   if not isinstance(record, dict):
                       continue
                   metadata = _metadata(record)
+                  content = _text(record)
                   filename = (
                       metadata.get("filename")
                       or record.get("filename")
-                      or ""
+                      or _field(content, "filename")
                   )
                   if not filename:
                       continue
-                  title = metadata.get("title") or record.get("title") or filename
+                  title = (
+                      metadata.get("title")
+                      or record.get("title")
+                      or _field(content, "title")
+                      or filename
+                  )
                   source = (
                       record.get("source")
                       or metadata.get("source")
