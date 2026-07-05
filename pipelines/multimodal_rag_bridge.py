@@ -117,10 +117,12 @@ class Pipeline:
             IMGPUSH_INTERNAL_URL=os.getenv("IMGPUSH_INTERNAL_URL", "http://imgpush:5000"),
             IMGPUSH_BROWSER_BASE_URL=os.getenv("IMGPUSH_BROWSER_BASE_URL", "http://localhost:5100"),
             IMGPUSH_PUBLIC_BASE_URL=os.getenv("IMGPUSH_PUBLIC_BASE_URL", ""),
+            # 既定は pipelines コンテナのバインドマウント配下（登録スクリプトと共有・.env.example と一致）。
             MULTIMODAL_RAG_HASH_INDEX_PATH=os.getenv(
-                "MULTIMODAL_RAG_HASH_INDEX_PATH", "/data/multimodal_rag/hash_index.json"
+                "MULTIMODAL_RAG_HASH_INDEX_PATH",
+                "/app/pipelines/data/multimodal_rag_hash_index.json",
             ),
-            MULTIMODAL_RAG_PHASH_MAX_DISTANCE=int(os.getenv("MULTIMODAL_RAG_PHASH_MAX_DISTANCE", "6")),
+            MULTIMODAL_RAG_PHASH_MAX_DISTANCE=int(os.getenv("MULTIMODAL_RAG_PHASH_MAX_DISTANCE", "8")),
             REQUEST_TIMEOUT_SECONDS=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60")),
         )
 

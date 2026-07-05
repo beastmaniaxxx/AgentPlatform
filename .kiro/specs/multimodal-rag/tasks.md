@@ -57,7 +57,7 @@
   - _Boundary: Register Script_
   - _Depends: 2, 3, 4_
 
-- [ ] 7. Core: multimodal_rag Pipeline（ハッシュ統合・中継・フォールバック制御）
+- [x] 7. Core: multimodal_rag Pipeline（ハッシュ統合・中継・フォールバック制御）
 - [x] 7.1 ハッシュ照合と自鯖内検索の統合・結果提示
   - Open WebUIメッセージからテキストと任意画像を抽出し、両方無い場合は入力を促すメッセージを返す
   - 画像がある場合は ImageHashIndex で完全/準一致を照合し、並行して imgpush（internal）へアップロードしてワークフローへ画像入力（remote_url）を渡す
@@ -76,7 +76,7 @@
   - _Boundary: MultimodalRAG Pipeline_
   - _Depends: 7.1_
 
-- [ ] 7.3 Pipeline のモデル登録確認と外部送信ゼロ不変条件
+- [x] 7.3 Pipeline のモデル登録確認と外部送信ゼロ不変条件
   - Pipeline を pipelines ランタイムへ登録し、pipelines コンテナからハッシュ副インデックスパスが読めることを確認する
   - `total>=1`（ハッシュ一致 or KB充足）経路で imgpush public/SerpAPI を呼ばない不変条件をテストで担保する
   - 観測可能な完了条件: `docker compose restart pipelines` 後 `GET /models` に `multimodal_rag` が含まれ、自鯖内充足経路で外部送信が発生しないテストが通る

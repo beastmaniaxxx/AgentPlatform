@@ -391,3 +391,104 @@ def test_pipe_uses_reverse_image_search_api_key_for_fallback(monkeypatch):
 
     assert captured["url"].endswith("/chat-messages")
     assert captured["auth"] == "Bearer ris-key-xyz"
+
+
+# --- タスク7.3: 登録確認と外部送信ゼロ不変条件 ---
+
+
+def test_pipeline_is_registerable_with_expected_identity(monkeypatch):
+    # pipelines ランタイムが /models へ列挙するための最小要件を満たすこと。
+    pipeline = _make_pipeline(monkeypatch)
+    assert pipeline.id == "multimodal_rag"
+    assert isinstance(pipeline.name, str) and pipeline.name
+    assert callable(pipeline.pipe)
+
+
+def test_default_hash_index_path_is_under_pipelines_mount(monkeypatch):
+    # ハッシュ副インデックスの既定パスは pipelines コンテナのバインドマウント配下で読める必要がある。
+    for key in [
+        "DIFY_API_BASE_URL",
+        "DIFY_MULTIMODAL_RAG_APP_API_KEY",
+        "DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY",
+        "IMGPUSH_INTERNAL_URL",
+        "IMGPUSH_BROWSER_BASE_URL",
+        "IMGPUSH_PUBLIC_BASE_URL",
+        "MULTIMODAL_RAG_HASH_INDEX_PATH",
+        "MULTIMODAL_RAG_PHASH_MAX_DISTANCE",
+        "REQUEST_TIMEOUT_SECONDS",
+    ]:
+        monkeypatch.delenv(key, raising=False)
+
+    pipeline = Pipeline()
+
+    assert pipeline.valves.MULTIMODAL_RAG_HASH_INDEX_PATH.startswith("/app/pipelines/")
+    # .env.example の既定値と一致していること（共有パスの単一の真実）。
+    assert pipeline.valves.MULTIMODAL_RAG_HASH_INDEX_PATH == (
+        "/app/pipelines/data/multimodal_rag_hash_index.json"
+    )
+    assert pipeline.valves.MULTIMODAL_RAG_PHASH_MAX_DISTANCE == 8
+
+
+def test_no_external_send_when_hash_match_satisfies_query(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    ask_called = []
+    monkeypatch.setattr(DifyChatBridge, "ask", lambda *a, **kw: ask_called.append(1) or "")
+    monkeypatch.setattr(
+        ImageHashIndex, "query",
+        lambda self, image_bytes, max_distance: [_hash_match("registered.jpg", "exact", 0)],
+    )
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    # KB は0件でも、ハッシュ一致で total>=1 のため外部送信は発生してはならない。
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert len(ask_called) == 0
+    assert "外部" not in result
+
+
+def test_no_external_send_when_kb_satisfies_query(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    ask_called = []
+    monkeypatch.setattr(DifyChatBridge, "ask", lambda *a, **kw: ask_called.append(1) or "")
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    items = [{"filename": "kb.jpg", "title": "KB", "text": "t", "source": "s", "score": 0.6}]
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(1, items))
+
+    result = pipeline.pipe(
+        user_message="猫",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert len(ask_called) == 0
+    assert "外部" not in result
+
+
+def test_no_external_send_via_requests_when_local_satisfies(monkeypatch):
+    # requests レベルでも reverse_image_search(/chat-messages) が呼ばれないことを担保する。
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(
+        ImageHashIndex, "query",
+        lambda self, image_bytes, max_distance: [_hash_match("registered.jpg", "exact", 0)],
+    )
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+    posted_urls = []
+    monkeypatch.setattr(requests, "post", lambda url, **kw: posted_urls.append(url))
+
+    pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert all("/chat-messages" not in url for url in posted_urls)
