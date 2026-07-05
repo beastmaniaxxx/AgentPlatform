@@ -137,6 +137,7 @@ class Pipeline:
         MULTIMODAL_RAG_HASH_INDEX_PATH: str
         MULTIMODAL_RAG_PHASH_MAX_DISTANCE: int
         MULTIMODAL_RAG_MIN_SCORE: float
+        MULTIMODAL_RAG_MIN_SCORE_IMAGE: float
         REQUEST_TIMEOUT_SECONDS: int
 
     def __init__(self) -> None:
@@ -160,7 +161,11 @@ class Pipeline:
             ),
             MULTIMODAL_RAG_PHASH_MAX_DISTANCE=int(os.getenv("MULTIMODAL_RAG_PHASH_MAX_DISTANCE", "8")),
             # KB意味検索の関連度下限。これ未満のKB結果は「該当なし」とみなしフォールバック判定に含めない。
+            # テキストクエリ用（テキスト対キャプションはベースラインが低い）。
             MULTIMODAL_RAG_MIN_SCORE=float(os.getenv("MULTIMODAL_RAG_MIN_SCORE", "0.28")),
+            # 画像クエリ用（キャプション対キャプションは類似ベースラインが高い〜0.3のため高め）。
+            # 画像の同一性はハッシュ照合が担い、キャプション意味一致は強い場合のみ採用する。
+            MULTIMODAL_RAG_MIN_SCORE_IMAGE=float(os.getenv("MULTIMODAL_RAG_MIN_SCORE_IMAGE", "0.5")),
             REQUEST_TIMEOUT_SECONDS=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60")),
         )
 
@@ -198,7 +203,13 @@ class Pipeline:
             _, kb_items = self._parse_outputs(outputs)
             # 関連度下限でKB結果を絞り込む（multipleモードは常に上位を返しスコアで自動フィルタ
             # されないため、Pipeline側で足切りしてフォールバック判定の精度を担保する）。
-            kb_items = self._filter_by_score(kb_items)
+            # 画像クエリはキャプション対キャプションの類似ベースラインが高いため高い閾値を使う。
+            min_score = (
+                self.valves.MULTIMODAL_RAG_MIN_SCORE_IMAGE
+                if image is not None
+                else self.valves.MULTIMODAL_RAG_MIN_SCORE
+            )
+            kb_items = self._filter_by_score(kb_items, min_score)
             total = len(hash_matches) + len(kb_items)
 
             if total <= 0:
@@ -303,8 +314,7 @@ class Pipeline:
             items = []
         return count, items
 
-    def _filter_by_score(self, kb_items: list) -> list:
-        threshold = self.valves.MULTIMODAL_RAG_MIN_SCORE
+    def _filter_by_score(self, kb_items: list, threshold: float) -> list:
         kept = []
         for item in kb_items:
             if not isinstance(item, dict):

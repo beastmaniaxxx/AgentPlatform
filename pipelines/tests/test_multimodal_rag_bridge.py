@@ -43,6 +43,7 @@ def _make_pipeline(monkeypatch, **env):
         "MULTIMODAL_RAG_HASH_INDEX_PATH": "/data/hash_index.json",
         "MULTIMODAL_RAG_PHASH_MAX_DISTANCE": "6",
         "MULTIMODAL_RAG_MIN_SCORE": "0.35",
+        "MULTIMODAL_RAG_MIN_SCORE_IMAGE": "0.5",
         "REQUEST_TIMEOUT_SECONDS": "30",
     }
     defaults.update(env)
@@ -253,6 +254,25 @@ def test_pipe_strips_think_from_summary(monkeypatch):
     assert "<think>" not in result
     assert "推論トレース" not in result
     assert "登録情報に基づく赤い車です。" in result
+
+
+def test_pipe_image_query_uses_higher_threshold_and_falls_back(monkeypatch):
+    # 画像クエリはキャプション対キャプションのベースラインが高いため、
+    # 0.35程度のKB一致は「弱い」とみなし（画像用閾値0.5未満）フォールバックへ回す。
+    pipeline = _make_pipeline(monkeypatch)  # MIN_SCORE=0.35 / MIN_SCORE_IMAGE=0.5
+    monkeypatch.setattr(OllamaCaptionClient, "generate_caption", lambda self, b: "無関係画像の説明")
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])  # ハッシュ一致なし
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    items = [{"filename": "kb.jpg", "title": "x", "text": "t", "source": "s", "score": 0.35}]
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, i, f, u: _outputs(1, items))
+    ask_called = []
+    monkeypatch.setattr(DifyChatBridge, "ask", lambda self, q, u: ask_called.append(q) or "web結果")
+
+    result = pipeline.pipe("", "multimodal_rag", _image_messages(), {})
+
+    # 0.35 < 0.5 なので弱一致は棄却 → フォールバック発火
+    assert len(ask_called) == 1
+    assert "外部" in result
 
 
 def test_pipe_dedupes_same_filename_preferring_hash_match(monkeypatch):
