@@ -7,8 +7,10 @@ from dataclasses import dataclass
 import mimetypes
 import os
 from pathlib import Path
+import socket
 import sys
 from typing import Callable, Mapping
+from urllib.parse import urlparse, urlunparse
 
 import requests
 
@@ -296,6 +298,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         env = merged_env(args.env_file)
+        env = _resolve_endpoints_for_execution(env, REPO_ROOT)
         imgpush_client, hash_index, caption_client, dataset_client = build_clients(
             env,
             timeout=args.timeout,
@@ -321,6 +324,50 @@ def main(argv: list[str] | None = None) -> int:
         f"failed={summary.failed}"
     )
     return 1 if summary.failed else 0
+
+
+def _host_resolvable(url: str) -> bool:
+    """URLのホスト名がこの環境で名前解決できるか。127.0.0.1/localhost は常にTrue。"""
+    host = urlparse(url).hostname
+    if not host:
+        return True
+    try:
+        socket.gethostbyname(host)
+        return True
+    except OSError:
+        return False
+
+
+def _to_localhost(url: str, port: str) -> str:
+    """コンテナ名URLを 127.0.0.1:<port> へ置き換える（scheme/path は維持）。"""
+    parsed = urlparse(url)
+    return urlunparse(parsed._replace(netloc=f"127.0.0.1:{port}"))
+
+
+def _resolve_endpoints_for_execution(env: Mapping[str, str], repo_root: Path) -> dict[str, str]:
+    """ホスト実行時、コンテナ名URLとコンテナ内パスをホストから到達可能な値へ自動変換する。
+
+    コンテナ内実行（サービス名が解決できる/`/app/pipelines` が存在する）では変換しない。
+    ユーザーが明示した 127.0.0.1 系の値はそのまま使われる。
+    """
+    resolved = dict(env)
+
+    for url_key, port_key, default_port in (
+        ("IMGPUSH_INTERNAL_URL", "IMGPUSH_PORT", "5100"),
+        ("DIFY_API_BASE_URL", "DIFY_API_PORT", "5001"),
+        ("OLLAMA_BASE_URL", "OLLAMA_HOST_PORT", "11435"),
+    ):
+        url = resolved.get(url_key, "")
+        if url and not _host_resolvable(url):
+            resolved[url_key] = _to_localhost(url, resolved.get(port_key, default_port))
+
+    hash_path = resolved.get("MULTIMODAL_RAG_HASH_INDEX_PATH", "")
+    container_prefix = "/app/pipelines/"
+    if hash_path.startswith(container_prefix) and not Path("/app/pipelines").exists():
+        relative = hash_path[len(container_prefix):]
+        resolved["MULTIMODAL_RAG_HASH_INDEX_PATH"] = str(repo_root / "pipelines" / relative)
+
+    return resolved
 
 
 def _iter_candidate_files(image_dir: Path) -> list[Path]:

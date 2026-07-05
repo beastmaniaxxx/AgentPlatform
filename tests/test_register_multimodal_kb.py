@@ -256,6 +256,59 @@ def test_dataset_client_creates_document_by_text(monkeypatch):
     assert captured["timeout"] == 8
 
 
+def test_to_localhost_replaces_container_host_and_keeps_path():
+    module = _load_module()
+    assert module._to_localhost("http://imgpush:5000", "5100") == "http://127.0.0.1:5100"
+    assert module._to_localhost("http://dify-api:5001/v1", "5001") == "http://127.0.0.1:5001/v1"
+    assert module._to_localhost("http://ollama:11434", "11435") == "http://127.0.0.1:11435"
+
+
+def test_resolve_endpoints_translates_container_urls_when_unresolvable(monkeypatch, tmp_path):
+    module = _load_module()
+    monkeypatch.setattr(module, "_host_resolvable", lambda url: False)
+    env = {
+        "IMGPUSH_INTERNAL_URL": "http://imgpush:5000",
+        "IMGPUSH_PORT": "5100",
+        "DIFY_API_BASE_URL": "http://dify-api:5001/v1",
+        "DIFY_API_PORT": "5001",
+        "OLLAMA_BASE_URL": "http://ollama:11434",
+        "MULTIMODAL_RAG_HASH_INDEX_PATH": "/app/pipelines/data/multimodal_rag_hash_index.json",
+    }
+
+    resolved = module._resolve_endpoints_for_execution(env, tmp_path)
+
+    assert resolved["IMGPUSH_INTERNAL_URL"] == "http://127.0.0.1:5100"
+    assert resolved["DIFY_API_BASE_URL"] == "http://127.0.0.1:5001/v1"
+    assert resolved["OLLAMA_BASE_URL"] == "http://127.0.0.1:11435"
+    assert resolved["MULTIMODAL_RAG_HASH_INDEX_PATH"] == str(
+        tmp_path / "pipelines" / "data" / "multimodal_rag_hash_index.json"
+    )
+
+
+def test_resolve_endpoints_keeps_urls_when_resolvable(monkeypatch, tmp_path):
+    module = _load_module()
+    monkeypatch.setattr(module, "_host_resolvable", lambda url: True)
+    env = {
+        "IMGPUSH_INTERNAL_URL": "http://imgpush:5000",
+        "DIFY_API_BASE_URL": "http://dify-api:5001/v1",
+        "OLLAMA_BASE_URL": "http://ollama:11434",
+    }
+
+    resolved = module._resolve_endpoints_for_execution(env, tmp_path)
+
+    assert resolved["IMGPUSH_INTERNAL_URL"] == "http://imgpush:5000"
+    assert resolved["DIFY_API_BASE_URL"] == "http://dify-api:5001/v1"
+    assert resolved["OLLAMA_BASE_URL"] == "http://ollama:11434"
+
+
+def test_resolve_endpoints_respects_explicit_localhost_override(monkeypatch, tmp_path):
+    module = _load_module()
+    # 127.0.0.1 は常に解決可能扱いなので、ユーザーが明示した値はそのまま使う。
+    env = {"OLLAMA_BASE_URL": "http://127.0.0.1:11500"}
+    resolved = module._resolve_endpoints_for_execution(env, tmp_path)
+    assert resolved["OLLAMA_BASE_URL"] == "http://127.0.0.1:11500"
+
+
 def test_iter_candidate_files_accepts_single_file(tmp_path):
     module = _load_module()
     image_path = tmp_path / "red.png"
