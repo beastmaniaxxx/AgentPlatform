@@ -64,9 +64,12 @@ def test_multimodal_rag_workflow_contains_caption_retrieval_normalize_branch_sum
     retrieval = nodes["retrieve_caption_kb"]["data"]
     assert "hybrid" in json.dumps(retrieval, ensure_ascii=False).lower()
     assert "weighted" in json.dumps(retrieval, ensure_ascii=False).lower()
+    # retrieval_mode は Dify の enum（single/multiple）のみ有効。'hybrid' は search_method 側。
+    assert retrieval["retrieval_mode"] in ("single", "multiple")
     assert retrieval["query_variable_selector"] == ["build_query_with_caption", "query"]
 
     text_retrieval = nodes["retrieve_caption_kb_text"]["data"]
+    assert text_retrieval["retrieval_mode"] in ("single", "multiple")
     assert text_retrieval["query_variable_selector"] == ["build_query_text_only", "query"]
 
 

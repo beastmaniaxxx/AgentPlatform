@@ -65,7 +65,11 @@ class DifyWorkflowBridge:
             },
             timeout=self._timeout,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            detail = (response.text or "").strip()[:500]
+            raise requests.exceptions.HTTPError(f"{exc} | Dify応答: {detail}") from exc
         data = response.json().get("data", {}) or {}
         return data.get("outputs", {}) or {}
 

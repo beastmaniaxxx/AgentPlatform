@@ -304,6 +304,25 @@ def test_workflow_bridge_run_posts_blocking_and_returns_outputs(monkeypatch):
     assert outputs == {"count": 1, "items": "[]", "summary": "s"}
 
 
+def test_workflow_bridge_run_surfaces_error_body(monkeypatch):
+    bridge = DifyWorkflowBridge(base_url="http://dify-api:5001/v1", api_key="k", timeout=5)
+
+    class FakeResponse:
+        status_code = 400
+        text = '{"message":"retrieval_mode Input should be single or multiple"}'
+
+        def raise_for_status(self):
+            raise requests.exceptions.HTTPError("400 Client Error")
+
+        def json(self):
+            return {}
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(requests.exceptions.RequestException, match="retrieval_mode"):
+        bridge.run({"query_text": "x"}, [], "u")
+
+
 # --- タスク7.2: フォールバック制御と通知・エラー処理 ---
 
 

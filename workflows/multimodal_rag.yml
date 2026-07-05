@@ -428,7 +428,7 @@ workflow:
         query_variable_selector:
         - build_query_with_caption
         - query
-        retrieval_mode: hybrid
+        retrieval_mode: multiple
         retrieval_model:
           reranking_enable: false
           reranking_mode: weighted_score
@@ -465,7 +465,7 @@ workflow:
         query_variable_selector:
         - build_query_text_only
         - query
-        retrieval_mode: hybrid
+        retrieval_mode: multiple
         retrieval_model:
           reranking_enable: false
           reranking_mode: weighted_score
