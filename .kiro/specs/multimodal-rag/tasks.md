@@ -38,7 +38,7 @@
   - _Boundary: ImageHashIndex_
   - _Depends: 1_
 
-- [ ] 5. (P) Core: multimodal_rag ワークフロー（キャプション化＋テキストKB検索）
+- [x] 5. (P) Core: multimodal_rag ワークフロー（キャプション化＋テキストKB検索）
   - Dify workflowモードのDSLを作成し、Start（テキスト＋任意画像）→[画像時]Vision LLMでクエリ画像キャプション化→クエリ統合→Knowledge Retrieval（テキストKB・hybrid/weighted）→正規化Code→0件分岐→LLM要約→End（構造化出力 count/items/summary）を構成する
   - 正規化Codeで検索結果を共通アイテム（filename/title/text/source/score）へ変換し、関連度順を保持して件数を算出する。テキストのみ入力時は Vision ノードを空処理でスキップする
   - インポート後に Vision/埋め込み/要約の各OllamaモデルとテキストKBを設定し、リクエストにユーザー識別情報を含めない

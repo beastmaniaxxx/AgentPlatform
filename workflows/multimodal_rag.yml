@@ -1,0 +1,980 @@
+app:
+  description: |-
+    画像キャプションを用いた自鯖内マルチモーダルRAGワークフロー。
+    テキストクエリ、または画像クエリをVision LLMでキャプション化したテキストをDifyテキストKBへ検索し、filename/title/text/source/scoreへ正規化して count/items/summary を返す。
+    インポート後に、Vision LLM、Knowledge RetrievalのテキストKB、要約LLMをDify管理画面でOllama接続済みモデルへ設定すること。
+  icon: 🖼️
+  icon_background: '#EFF1F5'
+  icon_type: emoji
+  mode: workflow
+  name: multimodal_rag
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/ollama:1.0.0@ae50a2db261bffa7289677f2b0a60e60762ceb187b602113b72425ccbe772dc3
+    version: null
+kind: app
+version: 0.6.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .jpg
+      - .jpeg
+      - .png
+      - .gif
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 1
+        image_file_batch_limit: 1
+        image_file_size_limit: 2
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 1
+      image:
+        enabled: true
+        number_limits: 1
+        transfer_methods:
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: start-source-has-image-target
+      source: start
+      sourceHandle: source
+      target: has_image
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: has-image-true-caption-target
+      source: has_image
+      sourceHandle: case_has_image
+      target: caption_query_image
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: has-image-false-text-only-target
+      source: has_image
+      sourceHandle: 'false'
+      target: build_query_text_only
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: caption-source-build-with-caption-target
+      source: caption_query_image
+      sourceHandle: source
+      target: build_query_with_caption
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: build-with-caption-source-retrieval-target
+      source: build_query_with_caption
+      sourceHandle: source
+      target: retrieve_caption_kb
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: text-only-source-retrieval-target
+      source: build_query_text_only
+      sourceHandle: source
+      target: retrieve_caption_kb_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: code
+      id: retrieval-source-normalize-target
+      source: retrieve_caption_kb
+      sourceHandle: source
+      target: normalize_results
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: normalize-source-check-target
+      source: normalize_results
+      sourceHandle: source
+      target: check_count
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: end
+      id: check-true-end-no-results-target
+      source: check_count
+      sourceHandle: case_zero_results
+      target: end_no_results
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: check-false-summarize-target
+      source: check_count
+      sourceHandle: 'false'
+      target: summarize_results
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: summarize-source-end-results-target
+      source: summarize_results
+      sourceHandle: source
+      target: end_results
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: code
+      id: retrieval-text-source-normalize-text-target
+      source: retrieve_caption_kb_text
+      sourceHandle: source
+      target: normalize_results_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: normalize-text-source-check-text-target
+      source: normalize_results_text
+      sourceHandle: source
+      target: check_count_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: end
+      id: check-text-true-end-no-results-text-target
+      source: check_count_text
+      sourceHandle: case_zero_results
+      target: end_no_results_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: check-text-false-summarize-text-target
+      source: check_count_text
+      sourceHandle: 'false'
+      target: summarize_results_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: summarize-text-source-end-results-text-target
+      source: summarize_results_text
+      sourceHandle: source
+      target: end_results_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: テキストクエリと任意の画像クエリを受け取る。画像はPipelineがimgpush internal URLをremote_urlとして渡す。
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: 検索テキスト
+          max_length: 4000
+          options: []
+          required: false
+          type: paragraph
+          variable: query_text
+        - allowed_file_extensions:
+          - .jpg
+          - .jpeg
+          - .png
+          - .gif
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - remote_url
+          label: 検索画像
+          max_length: 1
+          options: []
+          required: false
+          type: file
+          variable: query_image
+      height: 116
+      id: start
+      position:
+        x: 80
+        y: 280
+      positionAbsolute:
+        x: 80
+        y: 280
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: case_has_image
+          conditions:
+          - comparison_operator: not empty
+            id: cond_has_image
+            value: ''
+            varType: file
+            variable_selector:
+            - start
+            - query_image
+          id: case_has_image
+          logical_operator: and
+        desc: 画像がある場合だけVision LLMへ進める。テキストのみの場合はキャプション処理を空処理でスキップする。
+        selected: false
+        title: 画像有無判定
+        type: if-else
+      height: 167
+      id: has_image
+      position:
+        x: 384
+        y: 280
+      positionAbsolute:
+        x: 384
+        y: 280
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: クエリ画像を日本語キャプションへ変換する。インポート後にOllamaのVisionモデルを設定する。
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: ''
+          provider: ''
+        prompt_template:
+        - id: prompt_system
+          role: system
+          text: あなたは画像検索用のキャプションを作るアシスタントです。画像の主要な被写体、色、構図、文字、雰囲気を日本語で簡潔に説明してください。
+        - id: prompt_user
+          role: user
+          text: この画像を自鯖内ナレッジベース検索に使うため、検索に有効な日本語キャプションを1段落で作成してください。
+        selected: false
+        title: クエリ画像キャプション生成
+        type: llm
+        variables: []
+        vision:
+          configs:
+            variable_selector:
+            - start
+            - query_image
+          enabled: true
+      height: 183
+      id: caption_query_image
+      position:
+        x: 688
+        y: 160
+      positionAbsolute:
+        x: 688
+        y: 160
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |-
+          def main(query_text: str, caption: str) -> dict:
+              parts = []
+              if query_text and query_text.strip():
+                  parts.append(query_text.strip())
+              if caption and caption.strip():
+                  parts.append(caption.strip())
+              return {"query": "\n".join(parts)}
+        code_language: python3
+        desc: テキスト入力と画像キャプションを統合し、Knowledge Retrievalへ渡す検索クエリを作る。
+        outputs:
+          query:
+            children: null
+            type: string
+        selected: false
+        title: クエリ統合（画像あり）
+        type: code
+        variables:
+        - value_selector:
+          - start
+          - query_text
+          variable: query_text
+        - value_selector:
+          - caption_query_image
+          - text
+          variable: caption
+      height: 150
+      id: build_query_with_caption
+      position:
+        x: 992
+        y: 160
+      positionAbsolute:
+        x: 992
+        y: 160
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |-
+          def main(query_text: str) -> dict:
+              return {"query": (query_text or "").strip()}
+        code_language: python3
+        desc: テキストのみ入力ではVisionノードを通さず、入力テキストをそのまま検索クエリにする。
+        outputs:
+          query:
+            children: null
+            type: string
+        selected: false
+        title: クエリ統合（テキストのみ）
+        type: code
+        variables:
+        - value_selector:
+          - start
+          - query_text
+          variable: query_text
+      height: 126
+      id: build_query_text_only
+      position:
+        x: 992
+        y: 420
+      positionAbsolute:
+        x: 992
+        y: 420
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids: []
+        desc: キャプション文書を保持するDifyテキストKBを検索する。インポート後にmultimodal-rag-captions KBを選択する。
+        multiple_retrieval_config:
+          reranking_enable: false
+          top_k: 5
+        query_variable_selector:
+        - build_query_with_caption
+        - query
+        retrieval_mode: hybrid
+        retrieval_model:
+          reranking_enable: false
+          reranking_mode: weighted_score
+          score_threshold: 0.2
+          score_threshold_enabled: true
+          search_method: hybrid_search
+          top_k: 5
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            vector_setting:
+              vector_weight: 0.7
+        selected: false
+        title: キャプションKB検索
+        type: knowledge-retrieval
+      height: 151
+      id: retrieve_caption_kb
+      position:
+        x: 1296
+        y: 280
+      positionAbsolute:
+        x: 1296
+        y: 280
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids: []
+        desc: テキスト入力だけでキャプション文書KBを検索する。インポート後に画像あり経路と同じKBを選択する。
+        multiple_retrieval_config:
+          reranking_enable: false
+          top_k: 5
+        query_variable_selector:
+        - build_query_text_only
+        - query
+        retrieval_mode: hybrid
+        retrieval_model:
+          reranking_enable: false
+          reranking_mode: weighted_score
+          score_threshold: 0.2
+          score_threshold_enabled: true
+          search_method: hybrid_search
+          top_k: 5
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            vector_setting:
+              vector_weight: 0.7
+        selected: false
+        title: キャプションKB検索（テキストのみ）
+        type: knowledge-retrieval
+      height: 151
+      id: retrieve_caption_kb_text
+      position:
+        x: 1296
+        y: 520
+      positionAbsolute:
+        x: 1296
+        y: 520
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |-
+          import json
+
+          def _load_result(result):
+              if result is None:
+                  return []
+              if isinstance(result, str):
+                  if not result.strip():
+                      return []
+                  try:
+                      return json.loads(result)
+                  except Exception:
+                      return []
+              if isinstance(result, list):
+                  return result
+              if isinstance(result, dict):
+                  for key in ("result", "results", "documents", "records"):
+                      value = result.get(key)
+                      if isinstance(value, list):
+                          return value
+                  return [result]
+              return []
+
+          def _metadata(record):
+              metadata = record.get("metadata") or record.get("document_metadata") or {}
+              return metadata if isinstance(metadata, dict) else {}
+
+          def _text(record):
+              return (
+                  record.get("content")
+                  or record.get("text")
+                  or record.get("segment")
+                  or record.get("document")
+                  or ""
+              )
+
+          def _score(record):
+              value = record.get("score", record.get("similarity", 0))
+              try:
+                  return float(value)
+              except Exception:
+                  return 0.0
+
+          def main(result) -> dict:
+              items = []
+              for record in _load_result(result):
+                  if not isinstance(record, dict):
+                      continue
+                  metadata = _metadata(record)
+                  filename = (
+                      metadata.get("filename")
+                      or record.get("filename")
+                      or ""
+                  )
+                  if not filename:
+                      continue
+                  title = metadata.get("title") or record.get("title") or filename
+                  source = (
+                      record.get("source")
+                      or metadata.get("source")
+                      or metadata.get("document_id")
+                      or ""
+                  )
+                  items.append(
+                      {
+                          "filename": filename,
+                          "title": title,
+                          "text": _text(record),
+                          "source": source,
+                          "score": _score(record),
+                      }
+                  )
+              summary_seed = "\n".join(
+                  f"- {item['title']} ({item['filename']}): {item['text']}"
+                  for item in items
+              )
+              return {
+                  "count": len(items),
+                  "items": json.dumps(items, ensure_ascii=False),
+                  "summary_seed": summary_seed,
+              }
+        code_language: python3
+        desc: Knowledge Retrieval結果を filename/title/text/source/score の共通形式へ変換し、関連度順を保持したまま件数を算出する。filename欠落項目は表示できないため除外する。
+        outputs:
+          count:
+            children: null
+            type: number
+          items:
+            children: null
+            type: string
+          summary_seed:
+            children: null
+            type: string
+        selected: false
+        title: 検索結果正規化
+        type: code
+        variables:
+        - value_selector:
+          - retrieve_caption_kb
+          - result
+          variable: result
+      height: 231
+      id: normalize_results
+      position:
+        x: 1600
+        y: 280
+      positionAbsolute:
+        x: 1600
+        y: 280
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: case_zero_results
+          conditions:
+          - comparison_operator: '='
+            id: cond_count_zero
+            value: '0'
+            varType: number
+            variable_selector:
+            - normalize_results
+            - count
+          id: case_zero_results
+          logical_operator: and
+        desc: 自鯖内KB検索結果が0件かどうかを判定する。
+        selected: false
+        title: 結果件数チェック
+        type: if-else
+      height: 167
+      id: check_count
+      position:
+        x: 1904
+        y: 280
+      positionAbsolute:
+        x: 1904
+        y: 280
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |-
+          import json
+
+          def _load_result(result):
+              if result is None:
+                  return []
+              if isinstance(result, str):
+                  if not result.strip():
+                      return []
+                  try:
+                      return json.loads(result)
+                  except Exception:
+                      return []
+              if isinstance(result, list):
+                  return result
+              if isinstance(result, dict):
+                  for key in ("result", "results", "documents", "records"):
+                      value = result.get(key)
+                      if isinstance(value, list):
+                          return value
+                  return [result]
+              return []
+
+          def _metadata(record):
+              metadata = record.get("metadata") or record.get("document_metadata") or {}
+              return metadata if isinstance(metadata, dict) else {}
+
+          def _text(record):
+              return (
+                  record.get("content")
+                  or record.get("text")
+                  or record.get("segment")
+                  or record.get("document")
+                  or ""
+              )
+
+          def _score(record):
+              value = record.get("score", record.get("similarity", 0))
+              try:
+                  return float(value)
+              except Exception:
+                  return 0.0
+
+          def main(result) -> dict:
+              items = []
+              for record in _load_result(result):
+                  if not isinstance(record, dict):
+                      continue
+                  metadata = _metadata(record)
+                  filename = (
+                      metadata.get("filename")
+                      or record.get("filename")
+                      or ""
+                  )
+                  if not filename:
+                      continue
+                  title = metadata.get("title") or record.get("title") or filename
+                  source = (
+                      record.get("source")
+                      or metadata.get("source")
+                      or metadata.get("document_id")
+                      or ""
+                  )
+                  items.append(
+                      {
+                          "filename": filename,
+                          "title": title,
+                          "text": _text(record),
+                          "source": source,
+                          "score": _score(record),
+                      }
+                  )
+              summary_seed = "\n".join(
+                  f"- {item['title']} ({item['filename']}): {item['text']}"
+                  for item in items
+              )
+              return {
+                  "count": len(items),
+                  "items": json.dumps(items, ensure_ascii=False),
+                  "summary_seed": summary_seed,
+              }
+        code_language: python3
+        desc: テキストのみ経路のKnowledge Retrieval結果を共通形式へ変換する。
+        outputs:
+          count:
+            children: null
+            type: number
+          items:
+            children: null
+            type: string
+          summary_seed:
+            children: null
+            type: string
+        selected: false
+        title: 検索結果正規化（テキストのみ）
+        type: code
+        variables:
+        - value_selector:
+          - retrieve_caption_kb_text
+          - result
+          variable: result
+      height: 231
+      id: normalize_results_text
+      position:
+        x: 1600
+        y: 520
+      positionAbsolute:
+        x: 1600
+        y: 520
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: case_zero_results
+          conditions:
+          - comparison_operator: '='
+            id: cond_count_zero_text
+            value: '0'
+            varType: number
+            variable_selector:
+            - normalize_results_text
+            - count
+          id: case_zero_results
+          logical_operator: and
+        desc: テキストのみ経路のKB検索結果が0件かどうかを判定する。
+        selected: false
+        title: 結果件数チェック（テキストのみ）
+        type: if-else
+      height: 167
+      id: check_count_text
+      position:
+        x: 1904
+        y: 520
+      positionAbsolute:
+        x: 1904
+        y: 520
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 正規化済み検索結果を日本語で短く要約する。インポート後にOllamaのチャットモデルを設定する。
+        model:
+          completion_params:
+            temperature: 0.4
+          mode: chat
+          name: ''
+          provider: ''
+        prompt_template:
+        - id: prompt_system
+          role: system
+          text: あなたは自鯖内画像ナレッジベースの検索結果を日本語で要約するアシスタントです。外部検索結果のように断定せず、登録済み情報に基づいて簡潔に説明してください。
+        - id: prompt_user
+          role: user
+          text: |-
+            検索クエリ:
+            {{#build_query_with_caption.query#}}{{#build_query_text_only.query#}}
+
+            検索結果:
+            {{#normalize_results.summary_seed#}}
+
+            上記の結果を2〜4文で要約してください。
+        selected: false
+        title: 要約生成
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 163
+      id: summarize_results
+      position:
+        x: 2208
+        y: 160
+      positionAbsolute:
+        x: 2208
+        y: 160
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 1件以上の検索結果を構造化出力として返す。表示Markdownの組み立てはPipelineが担当する。
+        outputs:
+        - value_selector:
+          - normalize_results
+          - count
+          variable: count
+        - value_selector:
+          - normalize_results
+          - items
+          variable: items
+        - value_selector:
+          - summarize_results
+          - text
+          variable: summary
+        selected: false
+        title: 検索結果出力
+        type: end
+      height: 167
+      id: end_results
+      position:
+        x: 2512
+        y: 160
+      positionAbsolute:
+        x: 2512
+        y: 160
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: テキストのみ経路の検索結果を日本語で短く要約する。インポート後にOllamaのチャットモデルを設定する。
+        model:
+          completion_params:
+            temperature: 0.4
+          mode: chat
+          name: ''
+          provider: ''
+        prompt_template:
+        - id: prompt_system
+          role: system
+          text: あなたは自鯖内画像ナレッジベースの検索結果を日本語で要約するアシスタントです。登録済み情報に基づいて簡潔に説明してください。
+        - id: prompt_user
+          role: user
+          text: |-
+            検索クエリ:
+            {{#build_query_text_only.query#}}
+
+            検索結果:
+            {{#normalize_results_text.summary_seed#}}
+
+            上記の結果を2〜4文で要約してください。
+        selected: false
+        title: 要約生成（テキストのみ）
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 163
+      id: summarize_results_text
+      position:
+        x: 2208
+        y: 520
+      positionAbsolute:
+        x: 2208
+        y: 520
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: テキストのみ経路で1件以上の検索結果を構造化出力として返す。
+        outputs:
+        - value_selector:
+          - normalize_results_text
+          - count
+          variable: count
+        - value_selector:
+          - normalize_results_text
+          - items
+          variable: items
+        - value_selector:
+          - summarize_results_text
+          - text
+          variable: summary
+        selected: false
+        title: 検索結果出力（テキストのみ）
+        type: end
+      height: 167
+      id: end_results_text
+      position:
+        x: 2512
+        y: 520
+      positionAbsolute:
+        x: 2512
+        y: 520
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 0件時は空配列とcount=0を返す。Pipelineが必要に応じてフォールバックを判断する。
+        outputs:
+        - value: 0
+          variable: count
+        - value: '[]'
+          variable: items
+        - value: ''
+          variable: summary
+        selected: false
+        title: 0件出力
+        type: end
+      height: 167
+      id: end_no_results
+      position:
+        x: 2208
+        y: 420
+      positionAbsolute:
+        x: 2208
+        y: 420
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: テキストのみ経路の0件時は空配列とcount=0を返す。
+        outputs:
+        - value: 0
+          variable: count
+        - value: '[]'
+          variable: items
+        - value: ''
+          variable: summary
+        selected: false
+        title: 0件出力（テキストのみ）
+        type: end
+      height: 167
+      id: end_no_results_text
+      position:
+        x: 2208
+        y: 720
+      positionAbsolute:
+        x: 2208
+        y: 720
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -320
+      y: 90
+      zoom: 0.75
+  rag_pipeline_variables: []
