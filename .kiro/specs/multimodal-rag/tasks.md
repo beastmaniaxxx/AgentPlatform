@@ -2,7 +2,7 @@
 
 > 注: 本機能は新規サービスコンテナを追加しない（**Xinferenceは不採用**）。既存 Ollama（Vision/埋め込み/要約）と imgpush を再利用し、「画像→画像」の**完全一致・視覚酷似はローカルのハッシュ照合**（SHA-256／pHash）、**内容の意味的関連は caption 方式テキストKB**で実現する。Dify管理画面でのテキストKB作成・モデル設定・アプリインポート・APIキー発行といったコード化できない技術セットアップを伴う（タスク2・タスク8）。Phase 0スパイクの結果（Xinference非互換）と方針転換の根拠は `research.md` を参照。
 
-- [ ] 1. Foundation: Xinference成果物の撤去と本機能の環境変数・依存の整備
+- [x] 1. Foundation: Xinference成果物の撤去と本機能の環境変数・依存の整備
   - `docker/docker-compose.yml` から `xinference` サービス定義と `xinference-data` ボリュームを削除する（他サービス定義は変更しない）
   - `docker/.env.example` から `XINFERENCE_PORT` と Xinference 前提のコメントを削除し、`MULTIMODAL_RAG_CAPTION_MODEL`・`MULTIMODAL_RAG_HASH_INDEX_PATH`・`MULTIMODAL_RAG_PHASH_MAX_DISTANCE` を追記する（`IMGPUSH_BROWSER_BASE_URL`・`DIFY_MULTIMODAL_RAG_APP_API_KEY`・`DIFY_DATASET_API_KEY`・`MULTIMODAL_RAG_DATASET_ID` は既存を流用）。モデル/KBはDify管理画面で設定する旨をコメント明記
   - pipelines ランタイムの依存宣言に `Pillow`・`imagehash` を追加し、ハッシュ副インデックスを登録スクリプトと pipelines コンテナで共有するパスを確定する（既存バインドマウント配下で compose 無改変が可能か確認し、不可なら読み取り可能マウントを1つ追加）
