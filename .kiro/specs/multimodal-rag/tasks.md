@@ -19,7 +19,7 @@
   - _Requirements: 1.3, 2.1, 2.2, 2.3, 3.1_
   - _Depends: 1_
 
-- [ ] 3. (P) Core: 共有imgpushクライアントと画像バリデーション
+- [x] 3. (P) Core: 共有imgpushクライアントと画像バリデーション
   - 画像バイトを imgpush へアップロードし、internal/browser/public の3スコープURLと filename を組み立てる共有クライアントを実装する（public は未設定時 None）
   - JPG/PNG/GIF 以外、または 2MB 超を拒否する画像バリデーションを実装する
   - 単体テストで URL組み立て・形式/サイズ違反の拒否・imgpush接続エラーの送出を検証する
