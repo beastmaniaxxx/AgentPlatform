@@ -47,7 +47,7 @@
   - _Boundary: MultimodalRAG Workflow_
   - _Depends: 2_
 
-- [ ] 6. Core: マルチモーダルKB登録スクリプト（ハッシュ＋キャプション）
+- [x] 6. Core: マルチモーダルKB登録スクリプト（ハッシュ＋キャプション）
   - 指定ディレクトリ内の画像を走査・検証する（違反はスキップしログ通知、他画像の登録は継続）
   - SHA-256/pHash を算出し、SHA既存なら登録済みスキップ（冪等）。未登録画像を imgpush（internal）へアップロードする
   - Ollama Vision で日本語キャプションを生成し、キャプション＋画像Markdownリンク＋filename/メタデータの文書を Dify Dataset API で登録する。登録成功後に副インデックスへ `{filename, sha256, phash, title}` を追記する（登録失敗時は索引に追記しない）
