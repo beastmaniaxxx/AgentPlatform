@@ -1,0 +1,266 @@
+import base64
+import json
+
+import pytest
+import requests
+
+from image_hash_index import HashEntry, HashMatch, ImageHashIndex
+from imgpush_client import ImgpushClient, ImgpushUploadResult
+from multimodal_rag_bridge import DifyWorkflowBridge, Pipeline
+
+
+FAKE_IMAGE_B64 = base64.b64encode(b"fakeimagedata").decode()
+FAKE_IMAGE_DATA_URI = f"data:image/jpeg;base64,{FAKE_IMAGE_B64}"
+
+
+def _image_messages():
+    return [{"role": "user", "content": [
+        {"type": "image_url", "image_url": {"url": FAKE_IMAGE_DATA_URI}},
+    ]}]
+
+
+def _text_messages(text="hello"):
+    return [{"role": "user", "content": text}]
+
+
+def _make_pipeline(monkeypatch, **env):
+    defaults = {
+        "DIFY_API_BASE_URL": "http://dify-api:5001/v1",
+        "DIFY_MULTIMODAL_RAG_APP_API_KEY": "test-mmrag-key",
+        "IMGPUSH_INTERNAL_URL": "http://imgpush:5000",
+        "IMGPUSH_BROWSER_BASE_URL": "http://localhost:5100",
+        "MULTIMODAL_RAG_HASH_INDEX_PATH": "/data/hash_index.json",
+        "MULTIMODAL_RAG_PHASH_MAX_DISTANCE": "6",
+        "REQUEST_TIMEOUT_SECONDS": "30",
+    }
+    defaults.update(env)
+    for key, value in defaults.items():
+        monkeypatch.setenv(key, value)
+    return Pipeline()
+
+
+def _upload_result(filename="query.jpg"):
+    return ImgpushUploadResult(
+        filename=filename,
+        internal_url=f"http://imgpush:5000/{filename}",
+        browser_url=f"http://localhost:5100/{filename}",
+        public_url=None,
+    )
+
+
+def _hash_match(filename="registered.jpg", match_type="exact", distance=0, title="登録画像"):
+    return HashMatch(
+        entry=HashEntry(filename=filename, sha256="s" * 64, phash="ph", dhash="dh", title=title),
+        match_type=match_type,
+        distance=distance,
+    )
+
+
+def _outputs(count, items, summary=""):
+    return {"count": count, "items": json.dumps(items, ensure_ascii=False), "summary": summary}
+
+
+def test_pipeline_id_is_multimodal_rag(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    assert pipeline.id == "multimodal_rag"
+
+
+def test_valves_load_from_environment(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch, MULTIMODAL_RAG_PHASH_MAX_DISTANCE="9")
+    assert pipeline.valves.DIFY_MULTIMODAL_RAG_APP_API_KEY == "test-mmrag-key"
+    assert pipeline.valves.IMGPUSH_BROWSER_BASE_URL == "http://localhost:5100"
+    assert pipeline.valves.MULTIMODAL_RAG_HASH_INDEX_PATH == "/data/hash_index.json"
+    assert pipeline.valves.MULTIMODAL_RAG_PHASH_MAX_DISTANCE == 9
+    assert pipeline.valves.REQUEST_TIMEOUT_SECONDS == 30
+
+
+def test_pipe_prompts_for_input_when_no_text_and_no_image(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    run_called = []
+    query_called = []
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda *a, **kw: run_called.append(1) or {})
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: query_called.append(1) or [])
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_text_messages(""),
+        body={},
+    )
+
+    assert isinstance(result, str) and len(result) > 0
+    assert len(run_called) == 0
+    assert len(query_called) == 0
+
+
+def test_pipe_image_exact_hash_match_is_top_and_no_external_send(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(
+        ImageHashIndex, "query",
+        lambda self, image_bytes, max_distance: [_hash_match("registered.jpg", "exact", 0)],
+    )
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("query.jpg"))
+    # KB returns zero; total is driven by the hash exact match alone.
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert "![" in result
+    assert "http://localhost:5100/registered.jpg" in result
+    assert "完全一致" in result
+    # 7.1 must not perform any external send or notice.
+    assert "プライバシー" not in result
+    assert "外部" not in result
+
+
+def test_pipe_text_query_renders_thumbnails_and_summary(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    query_called = []
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: query_called.append(1) or [])
+    upload_called = []
+    monkeypatch.setattr(ImgpushClient, "upload", lambda *a, **kw: upload_called.append(1) or _upload_result())
+    items = [
+        {"filename": "red.jpg", "title": "赤い車", "text": "赤い車の画像。", "source": "doc-1", "score": 0.9},
+        {"filename": "blue.jpg", "title": "青い車", "text": "青い車の画像。", "source": "doc-2", "score": 0.7},
+    ]
+    monkeypatch.setattr(
+        DifyWorkflowBridge, "run",
+        lambda self, inputs, files, user_id: _outputs(2, items, "赤と青の車が見つかりました。"),
+    )
+
+    result = pipeline.pipe(
+        user_message="車の画像",
+        model_id="multimodal_rag",
+        messages=_text_messages("車の画像"),
+        body={},
+    )
+
+    assert "http://localhost:5100/red.jpg" in result
+    assert "http://localhost:5100/blue.jpg" in result
+    assert "赤と青の車が見つかりました。" in result
+    # No image -> hash lookup and imgpush upload must be skipped.
+    assert len(query_called) == 0
+    assert len(upload_called) == 0
+
+
+def test_pipe_dedupes_same_filename_preferring_hash_match(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(
+        ImageHashIndex, "query",
+        lambda self, image_bytes, max_distance: [_hash_match("same.jpg", "exact", 0)],
+    )
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result())
+    items = [
+        {"filename": "same.jpg", "title": "重複", "text": "KB側の重複。", "source": "doc", "score": 0.8},
+        {"filename": "other.jpg", "title": "別画像", "text": "別の画像。", "source": "doc", "score": 0.6},
+    ]
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(2, items))
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert result.count("http://localhost:5100/same.jpg") == 1
+    assert "http://localhost:5100/other.jpg" in result
+    assert "完全一致" in result
+
+
+def test_pipe_continues_kb_search_when_hash_index_read_fails(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+
+    def boom(self, image_bytes, max_distance):
+        raise OSError("index unreadable")
+
+    monkeypatch.setattr(ImageHashIndex, "query", boom)
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result())
+    items = [{"filename": "kb.jpg", "title": "KB", "text": "KBのみ。", "source": "doc", "score": 0.5}]
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(1, items))
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert "http://localhost:5100/kb.jpg" in result
+
+
+def test_pipe_passes_query_image_as_remote_url_to_workflow(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("query.jpg"))
+    captured = {}
+
+    def fake_run(self, inputs, files, user_id):
+        captured["inputs"] = inputs
+        captured["files"] = files
+        return _outputs(1, [{"filename": "kb.jpg", "title": "x", "text": "t", "source": "s", "score": 0.5}])
+
+    monkeypatch.setattr(DifyWorkflowBridge, "run", fake_run)
+
+    pipeline.pipe(
+        user_message="猫",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert captured["inputs"]["query_text"] == "猫"
+    assert captured["inputs"]["query_image"]["url"] == "http://imgpush:5000/query.jpg"
+    assert captured["inputs"]["query_image"]["transfer_method"] == "remote_url"
+
+
+def test_pipe_returns_string_and_does_not_raise_on_request_exception(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result())
+
+    def boom(self, inputs, files, user_id):
+        raise requests.exceptions.ConnectionError("refused")
+
+    monkeypatch.setattr(DifyWorkflowBridge, "run", boom)
+
+    result = pipeline.pipe(
+        user_message="猫",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert isinstance(result, str)
+
+
+def test_workflow_bridge_run_posts_blocking_and_returns_outputs(monkeypatch):
+    bridge = DifyWorkflowBridge(base_url="http://dify-api:5001/v1", api_key="k", timeout=30)
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": {"outputs": {"count": 1, "items": "[]", "summary": "s"}}}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["json"] = json
+        captured["auth"] = headers.get("Authorization")
+        return FakeResponse()
+
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    outputs = bridge.run({"query_text": "x"}, [], "user-1")
+
+    assert captured["url"].endswith("/workflows/run")
+    assert captured["json"]["response_mode"] == "blocking"
+    assert captured["auth"] == "Bearer k"
+    assert outputs == {"count": 1, "items": "[]", "summary": "s"}
