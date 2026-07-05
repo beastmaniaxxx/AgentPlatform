@@ -91,7 +91,7 @@
   - _Requirements: 1.3, 2.1, 2.2, 2.3, 2.5, 4.5_
   - _Depends: 1, 2, 5, 6, 7.3_
 
-- [ ] 9. Validation: 統合・E2E テスト
+- [x] 9. Validation: 統合・E2E テスト
   - Open WebUIから `multimodal_rag` を選択し、テキスト検索→自鯖内サムネイル＋要約（外部送信通知なし）、登録画像そのもの→完全一致が最上位（Webフォールバックしない）、軽微加工版→準一致、画像→内容関連画像/関連情報、を確認する
   - 自鯖内に無い画像→フォールバック通知＋外部送信通知＋Web結果、入力なし→促し、`dify-api` 停止→エラーメッセージ、を確認する
   - 登録スクリプト→索引→Pipeline照合の一気通貫（完全一致/準一致）、登録スクリプトの不正画像スキップ/冪等再実行、を統合テストで再確認する
@@ -103,3 +103,7 @@
 
 - ハッシュ副インデックスのパスは二重表現: pipelines コンテナ内 `/app/pipelines/data/multimodal_rag_hash_index.json`（Pipeline が読む）とホスト側 `pipelines/data/multimodal_rag_hash_index.json`（同一物理ファイル、バインドマウント `../pipelines:/app/pipelines`）。登録スクリプトをホスト実行する際は `MULTIMODAL_RAG_HASH_INDEX_PATH` をホスト側パスへ上書きする（`docs/multimodal-rag-setup.md` 手順2/4）。タスク9のE2Eで登録→検索を疎通させる際に必須。
 - Open WebUI Pipelines はトップレベル `pipelines/*.py` のみを走査し、`Pipeline` クラスの無い .py は `pipelines/failed/` へ隔離（＝ソース削除）する。共有ヘルパー `imgpush_client.py`/`image_hash_index.py` は `Pipeline` クラスを持たないため隔離され、`multimodal_rag_bridge.py` の兄弟importも連鎖破損した。対策: 共有ヘルパーをサブパッケージ `pipelines/mmrag_lib/`（走査対象外）へ移動し、`multimodal_rag_bridge.py` は自身のディレクトリを sys.path へ加えて `from mmrag_lib...` で読む。register スクリプト/テストも `mmrag_lib.*` を import する。
+- Dify DSL の落とし穴（E2Eで判明・修正済み）: (1) Endノード出力は定数 `value` 不可＝`value_selector`（上流参照）のみ。(2) Knowledge Retrieval の `retrieval_mode` は `single`/`multiple` のみ（`hybrid` は `search_method` 側）。(3) 検索結果の `filename`/`score` は `metadata` 側にあり、`filename` は本文の `filename:` 行、`score` は `metadata.score`。正規化Codeで両者を抽出する。(4) `multiple` モードは関連度で自動フィルタせず常に上位を返すため、Pipeline側でスコア足切り（`MULTIMODAL_RAG_MIN_SCORE` 系）して total を再計算する。
+- gemma系thinkingモデルは Dify LLM ノードで `<think>` 推論を本文へ混入させる（要約破綻＝Open WebUI無反応、クエリキャプション汚染＝誤マッチ）。対策: クエリ画像キャプションは Pipeline が Ollama を直接呼ぶ（`mmrag_lib/ollama_caption.py`・`/api/generate`・`think=False`・`<think>`除去）。出力側でも `<think>` を除去する。
+- キャプション意味検索の限界: キャプション対キャプションの類似は約0.3が下限で、無関係画像でも 0.3+ になる（関連テキストクエリ0.309と分離不能）。画像の同一性判定は**ハッシュ照合**に委ね、caption一致は画像クエリでは高閾値（`MULTIMODAL_RAG_MIN_SCORE_IMAGE=0.5`）、テキストは低閾値（`MULTIMODAL_RAG_MIN_SCORE=0.28`）を使う。
+- 運用: `.env` 変更は `docker compose restart` では反映されない（既存コンテナのenv維持）。`docker compose up -d <service>`（再作成）が必要。コンテナ内Ollamaは `ollama:11434`、ホストからは公開ポート（例 `11435`）。ネイティブOllamaが11434を占有する環境ではコンテナを別ポート公開する。
