@@ -49,7 +49,9 @@ def resolve_api_base_url(env: Mapping[str, str], override: str | None) -> str:
     if configured and "://dify-api:" not in configured:
         return configured
 
-    port = env.get("DIFY_API_PORT", "5001")
+    # 空文字（`DIFY_API_PORT=`）は未設定扱いにして既定へフォールバックする
+    # （`http://127.0.0.1:/v1` の不正URLを防ぐ）。
+    port = env.get("DIFY_API_PORT") or "5001"
     return f"http://127.0.0.1:{port}/v1"
 
 

@@ -324,6 +324,17 @@ def test_resolve_endpoints_keeps_urls_when_resolvable(monkeypatch, tmp_path):
     assert resolved["OLLAMA_BASE_URL"] == "http://ollama:11434"
 
 
+def test_resolve_endpoints_uses_default_port_when_env_port_empty(monkeypatch, tmp_path):
+    module = _load_module()
+    monkeypatch.setattr(module, "_host_resolvable", lambda url: False)
+    env = {"IMGPUSH_INTERNAL_URL": "http://imgpush:5000", "IMGPUSH_PORT": ""}
+
+    resolved = module._resolve_endpoints_for_execution(env, tmp_path)
+
+    # 空文字ポートは既定(5100)にフォールバックし、127.0.0.1: の不正URLにしない
+    assert resolved["IMGPUSH_INTERNAL_URL"] == "http://127.0.0.1:5100"
+
+
 def test_resolve_endpoints_respects_explicit_localhost_override(monkeypatch, tmp_path):
     module = _load_module()
     # 127.0.0.1 は常に解決可能扱いなので、ユーザーが明示した値はそのまま使う。

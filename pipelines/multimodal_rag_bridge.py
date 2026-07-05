@@ -187,10 +187,8 @@ class Pipeline:
 
         try:
             hash_matches: list[HashMatch] = []
-            upload_result: Optional[ImgpushUploadResult] = None
             if image is not None:
                 hash_matches = self._lookup_hash_matches(image["bytes"])
-                upload_result = self._upload_query_image(image)  # フォールバック公開URL用
                 # クエリ画像のキャプションはPipelineがOllamaを直接呼んで生成する
                 # （Difyのthinkingノードは<think>推論を本文へ混入させ検索クエリを汚染するため）。
                 caption = self._caption_query_image(image["bytes"])
@@ -214,7 +212,8 @@ class Pipeline:
 
             if total <= 0:
                 # 自鯖内0件。画像があればWeb逆画像検索へフォールバックする（要件4.2-4.5, 5.2）。
-                return self._handle_no_local_result(upload_result, user_id)
+                # imgpushへの公開アップロードはこの分岐に入ってから行う（ローカル充足時は公開・保存しない）。
+                return self._handle_no_local_result(image, user_id)
 
             return self._render_results(
                 hash_matches, kb_items, _strip_think(outputs.get("summary", ""))
@@ -253,11 +252,15 @@ class Pipeline:
         except Exception:  # noqa: BLE001 - キャプション障害で検索全体を止めない
             return ""
 
-    def _handle_no_local_result(
-        self, upload_result: Optional[ImgpushUploadResult], user_id: str
-    ) -> str:
+    def _handle_no_local_result(self, image: Optional[dict], user_id: str) -> str:
         # 画像なし（テキストのみ0件）はフォールバック不可（要件5.2）。
-        if upload_result is None or not upload_result.public_url:
+        if image is None:
+            return _NO_RESULT_MESSAGE
+
+        # フォールバックが必要になって初めて imgpush へアップロードする（ローカル充足時は
+        # 公開URLもディスク保存も発生させない）。外部到達URLが無ければフォールバック不可。
+        upload_result = self._upload_query_image(image)
+        if not upload_result.public_url:
             return _NO_RESULT_MESSAGE
 
         # 外部送信を伴うため、通知を必ず前置する（要件4.3, 4.4）。送信失敗時も通知は保持する。

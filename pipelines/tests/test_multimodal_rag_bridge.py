@@ -256,6 +256,43 @@ def test_pipe_strips_think_from_summary(monkeypatch):
     assert "登録情報に基づく赤い車です。" in result
 
 
+def test_pipe_does_not_upload_query_image_when_local_result_sufficient(monkeypatch):
+    # ローカルで充足（ハッシュ一致）した画像クエリでは、imgpushへ公開アップロードしない
+    # （不要な公開・ディスク増を避ける）。アップロードはフォールバック分岐でのみ行う。
+    pipeline = _make_pipeline(monkeypatch)
+    upload_calls = []
+    monkeypatch.setattr(
+        ImgpushClient, "upload",
+        lambda self, b, m: upload_calls.append(1) or _upload_result("q.jpg", public=True),
+    )
+    monkeypatch.setattr(
+        ImageHashIndex, "query",
+        lambda self, image_bytes, max_distance: [_hash_match("registered.jpg", "exact", 0)],
+    )
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, i, f, u: _outputs(0, []))
+
+    result = pipeline.pipe("", "multimodal_rag", _image_messages(), {})
+
+    assert len(upload_calls) == 0  # ローカル充足 → アップロードしない
+    assert "完全一致" in result
+
+
+def test_pipe_uploads_query_image_only_on_fallback(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    upload_calls = []
+    monkeypatch.setattr(
+        ImgpushClient, "upload",
+        lambda self, b, m: upload_calls.append(1) or _upload_result("q.jpg", public=True),
+    )
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, i, f, u: _outputs(0, []))
+    monkeypatch.setattr(DifyChatBridge, "ask", lambda self, q, u: "web結果")
+
+    pipeline.pipe("", "multimodal_rag", _image_messages(), {})
+
+    assert len(upload_calls) == 1  # フォールバック時のみアップロード
+
+
 def test_pipe_image_query_uses_higher_threshold_and_falls_back(monkeypatch):
     # 画像クエリはキャプション対キャプションのベースラインが高いため、
     # 0.35程度のKB一致は「弱い」とみなし（画像用閾値0.5未満）フォールバックへ回す。

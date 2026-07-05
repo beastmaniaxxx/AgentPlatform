@@ -333,7 +333,10 @@ def _resolve_endpoints_for_execution(env: Mapping[str, str], repo_root: Path) ->
     ):
         url = resolved.get(url_key, "")
         if url and not _host_resolvable(url):
-            resolved[url_key] = _to_localhost(url, resolved.get(port_key, default_port))
+            # 空文字の環境変数は未設定扱いにして既定ポートへフォールバックする
+            # （`IMGPUSH_PORT=` のような空値で `127.0.0.1:` の不正URLになるのを防ぐ）。
+            port = resolved.get(port_key) or default_port
+            resolved[url_key] = _to_localhost(url, port)
 
     hash_path = resolved.get("MULTIMODAL_RAG_HASH_INDEX_PATH", "")
     container_prefix = "/app/pipelines/"

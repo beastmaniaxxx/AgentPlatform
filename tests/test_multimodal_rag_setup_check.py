@@ -65,6 +65,18 @@ def test_resolve_api_base_url_prefers_host_port_when_docker_url_is_configured():
     assert base_url == "http://127.0.0.1:5501/v1"
 
 
+def test_resolve_api_base_url_uses_default_when_port_empty():
+    module = _load_module()
+
+    base_url = module.resolve_api_base_url(
+        {"DIFY_API_BASE_URL": "http://dify-api:5001/v1", "DIFY_API_PORT": ""},
+        override=None,
+    )
+
+    # 空文字ポートは既定(5001)にフォールバックし http://127.0.0.1:/v1 の不正URLにしない
+    assert base_url == "http://127.0.0.1:5001/v1"
+
+
 def test_check_dataset_api_sends_bearer_token_and_dataset_id(monkeypatch):
     module = _load_module()
     captured = {}
