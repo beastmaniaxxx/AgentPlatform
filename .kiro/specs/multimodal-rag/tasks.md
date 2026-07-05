@@ -11,7 +11,7 @@
   - _Requirements: 2.5, 3.1_
   - _Boundary: docker config, pipelines deps_
 
-- [ ] 2. Foundation: DifyテキストKBとOllamaモデルのセットアップ・Dataset APIキー発行
+- [x] 2. Foundation: DifyテキストKBとOllamaモデルのセットアップ・Dataset APIキー発行
   - Ollama に キャプション用 Vision モデル・テキスト埋め込みモデル・要約用チャットモデルを用意し、Dify にプロバイダ登録して利用可能にする
   - Dify管理画面で（Ollama埋め込みを用いる）テキストKBを作成し、hybrid/weighted score による関連度並べ替えを有効化する
   - Dataset APIキーを発行して作成KBの dataset id を記録し、キャプションモデル名とともに `.env` へ設定する（`DIFY_DATASET_API_KEY`・`MULTIMODAL_RAG_DATASET_ID`・`MULTIMODAL_RAG_CAPTION_MODEL`）
