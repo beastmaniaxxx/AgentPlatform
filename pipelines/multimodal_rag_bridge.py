@@ -17,7 +17,7 @@ import requests
 from pydantic import BaseModel
 
 from image_hash_index import HashMatch, ImageHashIndex
-from imgpush_client import ImgpushClient
+from imgpush_client import ImgpushClient, ImgpushUploadResult
 
 
 _INPUT_PROMPT = (
@@ -25,8 +25,18 @@ _INPUT_PROMPT = (
     "自鯖内の登録画像から、関連する画像・情報を検索します。"
 )
 
-# 自鯖内に該当が無い場合の応答。フォールバック制御（タスク7.2）で拡張する。
+# 自鯖内0件かつフォールバック不可（画像なし、または公開到達URL未設定）の応答。
 _NO_RESULT_MESSAGE = "自鯖内に該当する画像・情報が見つかりませんでした。"
+
+# フォールバック発火時に応答先頭へ前置する通知（要件4.3, 4.4）。
+_FALLBACK_NOTICE = (
+    "🔄 自鯖内では十分な結果が得られなかったため、Web逆画像検索（reverse_image_search）に"
+    "切り替えます。\n"
+)
+_EXTERNAL_SEND_NOTICE = (
+    "⚠️ **外部送信通知**: 入力画像は一時的に外部から参照可能なURLとして公開され、"
+    "第三者の検索サービス（SerpAPI）へ送信されます。\n\n"
+)
 
 
 class DifyWorkflowBridge:
@@ -59,12 +69,38 @@ class DifyWorkflowBridge:
         return user.get("id") or user.get("email") or "open-webui-user"
 
 
+class DifyChatBridge:
+    """フォールバック先の reverse_image_search（advanced-chatアプリ）を実行する。"""
+
+    def __init__(self, base_url: str, api_key: str, timeout: int) -> None:
+        self._base_url = base_url.rstrip("/")
+        self._api_key = api_key
+        self._timeout = timeout
+
+    def ask(self, query: str, user_id: str) -> str:
+        response = requests.post(
+            f"{self._base_url}/chat-messages",
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "inputs": {},
+                "query": query,
+                "response_mode": "blocking",
+                "user": user_id,
+            },
+            timeout=self._timeout,
+        )
+        response.raise_for_status()
+        return response.json().get("answer", "")
+
+
 class Pipeline:
     class Valves(BaseModel):
         DIFY_API_BASE_URL: str
         DIFY_MULTIMODAL_RAG_APP_API_KEY: str
+        DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY: str
         IMGPUSH_INTERNAL_URL: str
         IMGPUSH_BROWSER_BASE_URL: str
+        IMGPUSH_PUBLIC_BASE_URL: str
         MULTIMODAL_RAG_HASH_INDEX_PATH: str
         MULTIMODAL_RAG_PHASH_MAX_DISTANCE: int
         REQUEST_TIMEOUT_SECONDS: int
@@ -75,8 +111,12 @@ class Pipeline:
         self.valves = self.Valves(
             DIFY_API_BASE_URL=os.getenv("DIFY_API_BASE_URL", "http://dify-api:5001/v1"),
             DIFY_MULTIMODAL_RAG_APP_API_KEY=os.getenv("DIFY_MULTIMODAL_RAG_APP_API_KEY", ""),
+            DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY=os.getenv(
+                "DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY", ""
+            ),
             IMGPUSH_INTERNAL_URL=os.getenv("IMGPUSH_INTERNAL_URL", "http://imgpush:5000"),
             IMGPUSH_BROWSER_BASE_URL=os.getenv("IMGPUSH_BROWSER_BASE_URL", "http://localhost:5100"),
+            IMGPUSH_PUBLIC_BASE_URL=os.getenv("IMGPUSH_PUBLIC_BASE_URL", ""),
             MULTIMODAL_RAG_HASH_INDEX_PATH=os.getenv(
                 "MULTIMODAL_RAG_HASH_INDEX_PATH", "/data/multimodal_rag/hash_index.json"
             ),
@@ -102,18 +142,20 @@ class Pipeline:
 
         try:
             hash_matches: list[HashMatch] = []
+            upload_result: Optional[ImgpushUploadResult] = None
             query_image_url: Optional[str] = None
             if image is not None:
                 hash_matches = self._lookup_hash_matches(image["bytes"])
-                query_image_url = self._upload_query_image(image)
+                upload_result = self._upload_query_image(image)
+                query_image_url = upload_result.internal_url
 
             outputs = self._run_workflow(text, query_image_url, user_id)
             kb_count, kb_items = self._parse_outputs(outputs)
             total = len(hash_matches) + kb_count
 
             if total <= 0:
-                # 自鯖内0件。Webフォールバックはタスク7.2で実装する。
-                return _NO_RESULT_MESSAGE
+                # 自鯖内0件。画像があればWeb逆画像検索へフォールバックする（要件4.2-4.5, 5.2）。
+                return self._handle_no_local_result(upload_result, user_id)
 
             return self._render_results(hash_matches, kb_items, outputs.get("summary", ""))
         except (ValueError, requests.exceptions.RequestException) as exc:
@@ -127,14 +169,39 @@ class Pipeline:
         except Exception:  # noqa: BLE001 - 索引障害で検索全体を止めないための意図的な握り
             return []
 
-    def _upload_query_image(self, image: dict) -> str:
+    def _upload_query_image(self, image: dict) -> ImgpushUploadResult:
         client = ImgpushClient(
             internal_url=self.valves.IMGPUSH_INTERNAL_URL,
             browser_base_url=self.valves.IMGPUSH_BROWSER_BASE_URL,
+            public_base_url=self.valves.IMGPUSH_PUBLIC_BASE_URL,
             timeout=self.valves.REQUEST_TIMEOUT_SECONDS,
         )
-        result = client.upload(image["bytes"], image["mime_type"])
-        return result.internal_url
+        # imgpush(internal)への保存とURL文字列の組み立てのみ。外部送信は行わない。
+        return client.upload(image["bytes"], image["mime_type"])
+
+    def _handle_no_local_result(
+        self, upload_result: Optional[ImgpushUploadResult], user_id: str
+    ) -> str:
+        # 画像なし（テキストのみ0件）はフォールバック不可（要件5.2）。
+        if upload_result is None or not upload_result.public_url:
+            return _NO_RESULT_MESSAGE
+
+        # 外部送信を伴うため、通知を必ず前置する（要件4.3, 4.4）。送信失敗時も通知は保持する。
+        prefix = f"{_FALLBACK_NOTICE}{_EXTERNAL_SEND_NOTICE}"
+        try:
+            answer = self._fallback_web_search(upload_result.public_url, user_id)
+        except requests.exceptions.RequestException as exc:
+            return f"{prefix}⚠️ Web逆画像検索の実行に失敗しました: {exc}"
+        return f"{prefix}{answer}"
+
+    def _fallback_web_search(self, public_url: str, user_id: str) -> str:
+        # 発火・制御は本Pipelineが所有し、Web検索ロジックはreverse_image_searchへ委譲する（要件4.5）。
+        bridge = DifyChatBridge(
+            base_url=self.valves.DIFY_API_BASE_URL,
+            api_key=self.valves.DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY,
+            timeout=self.valves.REQUEST_TIMEOUT_SECONDS,
+        )
+        return bridge.ask(public_url, user_id)
 
     def _run_workflow(self, text: str, query_image_url: Optional[str], user_id: str) -> dict:
         bridge = DifyWorkflowBridge(

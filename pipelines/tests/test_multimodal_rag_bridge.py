@@ -6,7 +6,7 @@ import requests
 
 from image_hash_index import HashEntry, HashMatch, ImageHashIndex
 from imgpush_client import ImgpushClient, ImgpushUploadResult
-from multimodal_rag_bridge import DifyWorkflowBridge, Pipeline
+from multimodal_rag_bridge import DifyChatBridge, DifyWorkflowBridge, Pipeline
 
 
 FAKE_IMAGE_B64 = base64.b64encode(b"fakeimagedata").decode()
@@ -27,8 +27,10 @@ def _make_pipeline(monkeypatch, **env):
     defaults = {
         "DIFY_API_BASE_URL": "http://dify-api:5001/v1",
         "DIFY_MULTIMODAL_RAG_APP_API_KEY": "test-mmrag-key",
+        "DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY": "test-ris-key",
         "IMGPUSH_INTERNAL_URL": "http://imgpush:5000",
         "IMGPUSH_BROWSER_BASE_URL": "http://localhost:5100",
+        "IMGPUSH_PUBLIC_BASE_URL": "https://public.example.com",
         "MULTIMODAL_RAG_HASH_INDEX_PATH": "/data/hash_index.json",
         "MULTIMODAL_RAG_PHASH_MAX_DISTANCE": "6",
         "REQUEST_TIMEOUT_SECONDS": "30",
@@ -39,12 +41,12 @@ def _make_pipeline(monkeypatch, **env):
     return Pipeline()
 
 
-def _upload_result(filename="query.jpg"):
+def _upload_result(filename="query.jpg", public=True):
     return ImgpushUploadResult(
         filename=filename,
         internal_url=f"http://imgpush:5000/{filename}",
         browser_url=f"http://localhost:5100/{filename}",
-        public_url=None,
+        public_url=f"https://public.example.com/{filename}" if public else None,
     )
 
 
@@ -264,3 +266,128 @@ def test_workflow_bridge_run_posts_blocking_and_returns_outputs(monkeypatch):
     assert captured["json"]["response_mode"] == "blocking"
     assert captured["auth"] == "Bearer k"
     assert outputs == {"count": 1, "items": "[]", "summary": "s"}
+
+
+# --- タスク7.2: フォールバック制御と通知・エラー処理 ---
+
+
+def test_pipe_image_zero_total_falls_back_with_both_notices(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+    captured = {}
+
+    def fake_ask(self, query, user_id):
+        captured["query"] = query
+        return "Webで3件の類似画像が見つかりました。"
+
+    monkeypatch.setattr(DifyChatBridge, "ask", fake_ask)
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    # 発火先へは公開URLを渡す（要件4.5）
+    assert captured["query"] == "https://public.example.com/q.jpg"
+    # フォールバック通知＋外部送信通知を前置（要件4.3, 4.4）
+    assert "Web逆画像検索" in result
+    assert "外部" in result
+    assert "Webで3件の類似画像が見つかりました。" in result
+
+
+def test_pipe_text_only_zero_total_returns_not_found_without_fallback(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    ask_called = []
+    monkeypatch.setattr(DifyChatBridge, "ask", lambda *a, **kw: ask_called.append(1) or "")
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+
+    result = pipeline.pipe(
+        user_message="存在しない語",
+        model_id="multimodal_rag",
+        messages=_text_messages("存在しない語"),
+        body={},
+    )
+
+    assert isinstance(result, str) and len(result) > 0
+    assert len(ask_called) == 0  # フォールバック不可（要件5.2）
+    assert "Web逆画像検索" not in result
+
+
+def test_pipe_returns_error_string_when_workflow_raises(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result())
+
+    def boom(self, inputs, files, user_id):
+        raise requests.exceptions.ConnectionError("dify down")
+
+    monkeypatch.setattr(DifyWorkflowBridge, "run", boom)
+
+    result = pipeline.pipe(
+        user_message="猫",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert isinstance(result, str)
+    assert "失敗" in result
+
+
+def test_pipe_fallback_web_search_failure_keeps_notices_and_returns_string(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch)
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+
+    def boom(self, query, user_id):
+        raise requests.exceptions.ConnectionError("serp down")
+
+    monkeypatch.setattr(DifyChatBridge, "ask", boom)
+
+    result = pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert isinstance(result, str)
+    # 外部送信を試みた事実の通知は保持する（要件4.4）
+    assert "外部" in result
+
+
+def test_pipe_uses_reverse_image_search_api_key_for_fallback(monkeypatch):
+    pipeline = _make_pipeline(monkeypatch, DIFY_REVERSE_IMAGE_SEARCH_APP_API_KEY="ris-key-xyz")
+    monkeypatch.setattr(ImageHashIndex, "query", lambda *a, **kw: [])
+    monkeypatch.setattr(ImgpushClient, "upload", lambda self, b, m: _upload_result("q.jpg", public=True))
+    monkeypatch.setattr(DifyWorkflowBridge, "run", lambda self, inputs, files, user_id: _outputs(0, []))
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"answer": "ok"}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["auth"] = headers.get("Authorization")
+        return FakeResponse()
+
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    pipeline.pipe(
+        user_message="",
+        model_id="multimodal_rag",
+        messages=_image_messages(),
+        body={},
+    )
+
+    assert captured["url"].endswith("/chat-messages")
+    assert captured["auth"] == "Bearer ris-key-xyz"
