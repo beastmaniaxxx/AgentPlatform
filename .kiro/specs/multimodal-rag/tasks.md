@@ -84,7 +84,7 @@
   - _Boundary: MultimodalRAG Pipeline_
   - _Depends: 7.1, 7.2_
 
-- [ ] 8. Integration: セットアップ手順とエンドツーエンド配線
+- [x] 8. Integration: セットアップ手順とエンドツーエンド配線
   - Ollamaモデル用意・DifyテキストKB作成・Dataset APIキー発行・ハッシュ副インデックス共有パス設定・ワークフローインポート・モデル設定・画像登録（ハッシュ＋キャプション）の再現手順を技術セットアップガイドとして整備する
   - 環境変数（タスク1で整備した各キー）と各アプリAPIキーを結線し、Pipeline → ハッシュ索引 / ワークフロー → テキストKB → Ollama、およびフォールバック → reverse_image_search の経路を疎通させる
   - 観測可能な完了条件: ガイドに従ってクリーン環境から設定でき、登録済みKB/索引に対する自鯖内検索（完全一致・準一致・意味関連）とフォールバックの双方が疎通する
@@ -98,3 +98,7 @@
   - 観測可能な完了条件: 上記すべてのE2Eシナリオが想定どおりの応答を返し、自鯖内充足時（ハッシュ一致を含む）に外部送信が発生しないことを確認できる
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3_
   - _Depends: 6, 7.3, 8_
+
+## Implementation Notes
+
+- ハッシュ副インデックスのパスは二重表現: pipelines コンテナ内 `/app/pipelines/data/multimodal_rag_hash_index.json`（Pipeline が読む）とホスト側 `pipelines/data/multimodal_rag_hash_index.json`（同一物理ファイル、バインドマウント `../pipelines:/app/pipelines`）。登録スクリプトをホスト実行する際は `MULTIMODAL_RAG_HASH_INDEX_PATH` をホスト側パスへ上書きする（`docs/multimodal-rag-setup.md` 手順2/4）。タスク9のE2Eで登録→検索を疎通させる際に必須。
